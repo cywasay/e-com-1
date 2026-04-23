@@ -1,0 +1,21 @@
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/.env
+
+# Backend
+backend/vendor/
+backend/.env
+backend/storage/*.key
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/testing/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+
+# OS files
+.DS_Store
+Thumbs.db
+temp_auto_push.bat
+temp_interactive_push.bat
