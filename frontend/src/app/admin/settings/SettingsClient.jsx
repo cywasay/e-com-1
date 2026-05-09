@@ -1,0 +1,58 @@
+"use client";
+
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/api";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import SettingsHeader from "./_components/SettingsHeader";
+import GeneralSettingsForm from "./_components/GeneralSettingsForm";
+import SocialSettingsForm from "./_components/SocialSettingsForm";
+import AssetsSettingsForm from "./_components/AssetsSettingsForm";
+
+export default function SettingsClient() {
+  const queryClient = useQueryClient();
+
+  const { data: settingsData, isLoading } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: () => api.get("/admin/settings").then((res) => res.data.data),
+  });
+
+  const { register, handleSubmit, reset, formState: { isDirty } } = useForm();
+
+  useEffect(() => {
+    if (settingsData) reset(settingsData);
+  }, [settingsData, reset]);
+
+  const mutation = useMutation({
+    mutationFn: (data) => api.put("/admin/settings", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin-settings"]);
+      toast.success("Settings saved successfully");
+    },
+    onError: () => toast.error("Failed to save settings"),
+  });
+
+  if (isLoading) {
+    return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-[#008060]" size={32} /></div>;
+  }
+
+  return (
+    <ProtectedRoute allowedRoles={["super_admin"]}>
+      <div className="space-y-8 max-w-4xl pb-20">
+        <SettingsHeader 
+          onSave={handleSubmit((data) => mutation.mutate(data))} 
+          isPending={mutation.isPending} 
+          isDirty={isDirty} 
+        />
+        <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-8">
+          <GeneralSettingsForm register={register} />
+          <SocialSettingsForm register={register} />
+          <AssetsSettingsForm register={register} />
+        </form>
+      </div>
+    </ProtectedRoute>
+  );
+}

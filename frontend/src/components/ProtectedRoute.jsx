@@ -4,25 +4,27 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useAuthStore from "@/store/authStore";
 
-export default function ProtectedRoute({ children }) {
-  const token = useAuthStore((state) => state.token);
+export default function ProtectedRoute({ children, adminOnly = false }) {
+  const { token, role } = useAuthStore();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (mounted && !token) {
-      router.replace("/login");
+    if (isHydrated) {
+      if (!token) {
+        router.replace("/login");
+      } else if (adminOnly && !["super_admin", "admin_staff"].includes(role)) {
+        router.replace("/");
+      }
     }
-  }, [token, router, mounted]);
+  }, [token, role, router, isHydrated, adminOnly]);
 
-  // Avoid hydration mismatch by returning null during SSR and initial client pass
-  if (!mounted || !token) {
-    return null;
-  }
+  if (!isHydrated || !token) return null;
+  if (adminOnly && !["super_admin", "admin_staff"].includes(role)) return null;
 
   return <>{children}</>;
 }

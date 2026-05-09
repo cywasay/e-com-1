@@ -16,9 +16,10 @@ class SuperAdminSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@platform.com'],
             [
-                'name'     => 'Super Admin',
-                'password' => Hash::make('password'),
-                'role'     => 'super_admin',
+                'name'            => 'Super Admin',
+                'password'        => Hash::make('password'),
+                'role'            => User::ROLE_SUPER_ADMIN,
+                'approval_status' => User::STATUS_APPROVED,
             ]
         );
     }

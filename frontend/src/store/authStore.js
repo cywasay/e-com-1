@@ -1,22 +1,31 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
-const useAuthStore = create((set) => ({
-  user: null,
-  token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
+const useAuthStore = create(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      role: null,
 
-  setUser: (user, token) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("token", token);
+      setUser: (user, token) => {
+        set({ user, token, role: user?.role || null });
+      },
+
+      logout: () => {
+        set({ user: null, token: null, role: null });
+        // Clear the auth cookie so middleware knows we're logged out
+        if (typeof document !== 'undefined') {
+          document.cookie = "auth-storage=; path=/; max-age=0; SameSite=Lax";
+          document.cookie = "auth-token=; path=/; max-age=0; SameSite=Lax";
+        }
+      },
+    }),
+    {
+      name: "auth-storage",
+      storage: createJSONStorage(() => localStorage),
     }
-    set({ user, token });
-  },
-
-  logout: () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-    }
-    set({ user: null, token: null });
-  },
-}));
+  )
+);
 
 export default useAuthStore;

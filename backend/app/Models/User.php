@@ -24,7 +24,23 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'b2b_status',
+        'approval_status',
+        'phone',
+        'company_name',
+        'tax_id',
     ];
+
+    // Roles
+    const ROLE_SUPER_ADMIN = 'super_admin';
+    const ROLE_ADMIN_STAFF = 'admin_staff';
+    const ROLE_B2B_BUYER   = 'b2b_buyer';
+    const ROLE_B2C_CUSTOMER = 'b2c_customer';
+
+    // Statuses
+    const STATUS_PENDING  = 'pending';
+    const STATUS_APPROVED = 'approved';
+    const STATUS_REJECTED = 'rejected';
 
     /**
      * The attributes that should be hidden for serialization.
@@ -47,5 +63,29 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Relationship: B2B Applications.
+     */
+    public function b2bApplications()
+    {
+        return $this->hasMany(B2bApplication::class);
+    }
+
+    /**
+     * Relationship: Orders.
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'customer_id');
+    }
+
+    /**
+     * Relationship: Cart Items.
+     */
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
     }
 }

@@ -9,7 +9,7 @@ export default function AdminFinancials() {
         </div>
         <div className="bg-white border border-[#E1E3E5] p-5 rounded-sm shadow-sm">
           <div className="text-2xl font-bold text-gray-900">$12,450.00</div>
-          <div className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-wider">Platform Fees</div>
+          <div className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-wider">uniforms.ae Fees</div>
         </div>
         <div className="bg-white border border-[#E1E3E5] p-5 rounded-sm shadow-sm">
           <div className="text-2xl font-bold text-gray-900">$112,050.00</div>

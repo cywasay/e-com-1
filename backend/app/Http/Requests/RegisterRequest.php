@@ -23,7 +23,10 @@ class RegisterRequest extends FormRequest
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role'     => ['sometimes', 'in:super_admin,vendor,customer'],
+            'role'           => ['required', 'in:b2b_buyer,b2c_customer'],
+            'phone'          => ['nullable', 'string', 'max:20'],
+            'company_name'   => ['required_if:role,b2b_buyer', 'nullable', 'string', 'max:255'],
+            'tax_id'         => ['required_if:role,b2b_buyer', 'nullable', 'string', 'max:255'],
         ];
     }
 }

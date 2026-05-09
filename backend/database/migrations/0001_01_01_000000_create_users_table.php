@@ -17,7 +17,11 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['super_admin', 'vendor', 'customer'])->default('customer');
+            $table->enum('role', ['super_admin', 'admin_staff', 'b2b_buyer', 'b2c_customer'])->default('b2c_customer');
+            $table->enum('approval_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('phone')->nullable();
+            $table->string('company_name')->nullable();
+            $table->string('tax_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
