@@ -5,6 +5,8 @@ import ProductTags from "./ProductTags";
 import ProductImageUpload from "./ProductImageUpload";
 import ProductVariants from "./ProductVariants";
 import ProductSiteSelect from "./ProductSiteSelect";
+import ProductPricing from "./ProductPricing";
+import ProductInventory from "./ProductInventory";
 
 export default function ProductForm({ 
   formData, setFormData, editingId, onBack, onSubmit, isSaving, 
@@ -17,23 +19,59 @@ export default function ProductForm({
         <div className="px-8 py-5 border-b border-slate-200 bg-slate-50/50">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest">{editingId ? "Edit Product" : "Add New Product"}</h2>
         </div>
-        <form onSubmit={onSubmit} className="p-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <ProductBasicInfo formData={formData} setFormData={setFormData} categoryOptions={categoryOptions} />
+        <form onSubmit={onSubmit} className="p-8 space-y-12">
+          {/* Section 1: Basic Info */}
+          <div className="space-y-6">
+            <ProductBasicInfo formData={formData} setFormData={setFormData} categoryOptions={categoryOptions} />
+          </div>
+
+          {/* Section 2: Description */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Product Description</label>
+            <textarea 
+              rows={6} 
+              value={formData.description} 
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full bg-white border border-slate-200 px-4 py-3 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none shadow-sm"
+              placeholder="Tell customers about your product..."
+            />
+          </div>
+
+          {/* Section 3: Pricing */}
+          <ProductPricing formData={formData} setFormData={setFormData} />
+
+          {/* Section 4: Inventory */}
+          <ProductInventory formData={formData} setFormData={setFormData} />
+
+          {/* Section 5: Media */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-semibold text-slate-800">Media</h3>
             </div>
-            <div className="space-y-6">
+            <ProductImageUpload editingId={editingId} images={formData.images} {...imageMutations} />
+          </div>
+
+          {/* Section 5: Variants */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-semibold text-slate-800">Variants</h3>
+            </div>
+            <ProductVariants formData={formData} setFormData={setFormData} onGenerate={onGenerateVariants} onRemoveVariant={onRemoveVariant} />
+          </div>
+
+          {/* Section 6: Organization */}
+          <div className="space-y-8 pt-8 border-t border-slate-100">
+            <div className="space-y-4">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Tags & Keywords</label>
               <ProductTags formData={formData} setFormData={setFormData} />
-              <textarea 
-                rows={6} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full bg-white border border-slate-200 px-4 py-2.5 text-sm rounded focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                placeholder="Description..."
-              />
-              <ProductImageUpload editingId={editingId} images={formData.images} {...imageMutations} />
-              <ProductVariants formData={formData} setFormData={setFormData} onGenerate={onGenerateVariants} onRemoveVariant={onRemoveVariant} />
+            </div>
+            
+            <div className="space-y-4">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Site Visibility</label>
               <ProductSiteSelect sites={sites} selectedSiteIds={formData.site_ids} onChange={(ids) => setFormData({...formData, site_ids: ids})} />
             </div>
           </div>
+
           <FormFooter isSaving={isSaving} onBack={onBack} editingId={editingId} />
         </form>
       </div>

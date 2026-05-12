@@ -109,7 +109,10 @@ class ProductController extends Controller
     {
         $query = Product::where('status', 'published')
             ->whereNotNull('name')
-            ->whereNotNull('base_retail_price')
+            ->where(function ($q) {
+                $q->whereNotNull('base_retail_price')
+                  ->orWhereNotNull('price');
+            })
             ->with(['category:id,name', 'images']);
 
         if ($request->has('category_id')) {
@@ -199,6 +202,17 @@ class ProductController extends Controller
             'is_new_arrival' => 'boolean',
             'site_ids' => 'nullable|array',
             'site_ids.*' => 'exists:sites,id',
+            'base_cost' => 'nullable|numeric|min:0',
+            'compare_at_price' => 'nullable|numeric|min:0',
+            'charge_tax' => 'boolean',
+            'margin_percentage' => 'nullable|numeric|min:0',
+            'tax_percentage' => 'nullable|numeric|min:0',
+            'handling_fee' => 'nullable|numeric|min:0',
+            'sku' => 'nullable|string|max:100',
+            'barcode' => 'nullable|string|max:100',
+            'stock_qty' => 'nullable|integer|min:0',
+            'track_inventory' => 'boolean',
+            'continue_selling_when_out_of_stock' => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -263,6 +277,17 @@ class ProductController extends Controller
             'is_new_arrival' => 'boolean',
             'site_ids' => 'nullable|array',
             'site_ids.*' => 'exists:sites,id',
+            'base_cost' => 'nullable|numeric|min:0',
+            'compare_at_price' => 'nullable|numeric|min:0',
+            'charge_tax' => 'boolean',
+            'margin_percentage' => 'nullable|numeric|min:0',
+            'tax_percentage' => 'nullable|numeric|min:0',
+            'handling_fee' => 'nullable|numeric|min:0',
+            'sku' => 'nullable|string|max:100',
+            'barcode' => 'nullable|string|max:100',
+            'stock_qty' => 'nullable|integer|min:0',
+            'track_inventory' => 'boolean',
+            'continue_selling_when_out_of_stock' => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -342,8 +367,10 @@ class ProductController extends Controller
 
         $validator = Validator::make($request->all(), [
             'sku' => 'nullable|string|max:100|unique:product_variants,sku',
+            'barcode' => 'nullable|string|max:100',
             'options' => 'required|array',
             'price' => 'nullable|numeric|min:0',
+            'base_cost' => 'nullable|numeric|min:0',
             'stock_qty' => 'integer|min:0',
             'is_active' => 'boolean',
         ]);
@@ -377,8 +404,10 @@ class ProductController extends Controller
 
         $validator = Validator::make($request->all(), [
             'sku' => 'nullable|string|max:100|unique:product_variants,sku,' . $variantId,
+            'barcode' => 'nullable|string|max:100',
             'options' => 'required|array',
             'price' => 'nullable|numeric|min:0',
+            'base_cost' => 'nullable|numeric|min:0',
             'stock_qty' => 'integer|min:0',
             'is_active' => 'boolean',
         ]);

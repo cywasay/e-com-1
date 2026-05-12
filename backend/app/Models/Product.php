@@ -27,6 +27,17 @@ class Product extends Model
         'is_bestseller',
         'is_eco_friendly',
         'is_new_arrival',
+        'base_cost',
+        'compare_at_price',
+        'charge_tax',
+        'margin_percentage',
+        'tax_percentage',
+        'handling_fee',
+        'sku',
+        'barcode',
+        'stock_qty',
+        'track_inventory',
+        'continue_selling_when_out_of_stock',
     ];
 
     protected $casts = [
@@ -35,6 +46,15 @@ class Product extends Model
         'is_bestseller' => 'boolean',
         'is_eco_friendly' => 'boolean',
         'is_new_arrival' => 'boolean',
+        'charge_tax' => 'boolean',
+        'base_cost' => 'decimal:2',
+        'compare_at_price' => 'decimal:2',
+        'margin_percentage' => 'decimal:2',
+        'tax_percentage' => 'decimal:2',
+        'handling_fee' => 'decimal:2',
+        'stock_qty' => 'integer',
+        'track_inventory' => 'boolean',
+        'continue_selling_when_out_of_stock' => 'boolean',
     ];
 
     /**

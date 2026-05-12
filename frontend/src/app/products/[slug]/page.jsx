@@ -2,7 +2,7 @@ import ProductDetailClient from "./ProductDetailClient";
 import api from "@/lib/api";
 
 export async function generateMetadata({ params }) {
-  const { slug } = params;
+  const { slug } = await params;
   try {
     const response = await api.get(`/products/slug/${slug}`);
     const product = response.data.data;
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProductDetailPage({ params }) {
-  const { slug } = params;
+  const { slug } = await params;
   let initialProduct = null;
 
   try {

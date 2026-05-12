@@ -12,9 +12,11 @@ class ProductVariant extends Model
     protected $fillable = [
         'product_id',
         'sku',
+        'barcode',
         'options',
         'price',
         'stock_qty',
+        'base_cost',
         'is_active',
     ];
 
@@ -23,6 +25,7 @@ class ProductVariant extends Model
         'price' => 'decimal:2',
         'is_active' => 'boolean',
         'stock_qty' => 'integer',
+        'base_cost' => 'decimal:2',
     ];
 
     /**

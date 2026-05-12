@@ -68,7 +68,7 @@ class CategoryController extends Controller
             'success' => true,
             'data' => $category,
             'message' => 'Category created successfully.'
-        ], 210);
+        ], 201);
     }
 
     /**
