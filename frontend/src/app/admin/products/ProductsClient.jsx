@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import api from "@/lib/api";
 import ProductsHeader from "./_components/ProductsHeader";
 import ProductsFilters from "./_components/ProductsFilters";
@@ -114,13 +115,29 @@ export default function ProductsClient() {
           }
         });
         
-        await Promise.all(variantPromises);
-        setDeletedVariantIds([]); // Reset deletion queue correctly as an array
+        const results = await Promise.allSettled(variantPromises);
+        setDeletedVariantIds([]); // Reset deletion queue
+        
+        const failures = results.filter(r => r.status === 'rejected');
+        
+        if (failures.length > 0) {
+          console.error("Some variants failed to save:", failures);
+          toast.error(`Product saved but ${failures.length} variant(s) failed. Check SKUs.`);
+          // Do NOT setView("list") so user can fix variants
+        } else {
+          toast.success(editingId ? "Product updated successfully." : "Product created successfully.");
+          setView("list");
+        }
       } catch (e) {
-        console.error("Error saving variants:", e);
+        console.error("Main save process failed:", e);
+        toast.error("An unexpected error occurred while saving.");
       }
       queryClient.invalidateQueries(["admin", "products"]);
-      setView("list");
+    },
+    onError: (error) => {
+      console.error("Save mutation failed:", error);
+      const message = error.response?.data?.message || "Failed to save product. Please try again.";
+      toast.error(message);
     }
   });
 
@@ -212,13 +229,15 @@ export default function ProductsClient() {
 
   if (view === "form") {
     return (
-      <ProductForm 
-        formData={formData} setFormData={setFormData} editingId={editingId} 
-        onBack={() => setView("list")} onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(formData); }}
-        isSaving={saveMutation.isPending} categoryOptions={categoryOptions} sites={sitesResponse?.data || []}
-        imageMutations={{ onUpload: (f) => uploadImagesMutation.mutate(f), onSetPrimary: (id) => setPrimaryMutation.mutate(id), onDelete: (id) => deleteImageMutation.mutate(id), isUploading: uploadImagesMutation.isPending, isSettingPrimary: setPrimaryMutation.isPending }}
-        onGenerateVariants={generateVariants} onRemoveVariant={(v, idx) => { if (v.id) setDeletedVariantIds(prev => [...prev, v.id]); const newV = formData.variants.filter((_, i) => i !== idx); setFormData({ ...formData, variants: newV }); }}
-      />
+      <>
+        <ProductForm 
+          formData={formData} setFormData={setFormData} editingId={editingId} 
+          onBack={() => setView("list")} onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(formData); }}
+          isSaving={saveMutation.isPending} categoryOptions={categoryOptions} sites={sitesResponse?.data || []}
+          imageMutations={{ onUpload: (f) => uploadImagesMutation.mutate(f), onSetPrimary: (id) => setPrimaryMutation.mutate(id), onDelete: (id) => deleteImageMutation.mutate(id), isUploading: uploadImagesMutation.isPending, isSettingPrimary: setPrimaryMutation.isPending }}
+          onGenerateVariants={generateVariants} onRemoveVariant={(v, idx) => { if (v.id) setDeletedVariantIds(prev => [...prev, v.id]); const newV = formData.variants.filter((_, i) => i !== idx); setFormData({ ...formData, variants: newV }); }}
+        />
+      </>
     );
   }
 

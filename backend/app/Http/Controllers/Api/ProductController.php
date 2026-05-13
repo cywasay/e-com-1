@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ProductsImport;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -28,7 +30,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         // Admin should see EVERYTHING including soft-deleted and incomplete products
-        $query = Product::withTrashed()->with(['category:id,name', 'sites:id,name,domain', 'images']);
+        $query = Product::withTrashed()->with(['category:id,name', 'sites:id,name,domain', 'images', 'variants']);
 
         // Only apply filters if explicitly requested
         if ($request->filled('status') && $request->status !== 'all') {
@@ -227,23 +229,35 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $data = $request->all();
-        if (empty($data['visibility'])) $data['visibility'] = 'both';
-        if (!isset($data['base_retail_price']) && isset($data['price'])) {
-            $data['base_retail_price'] = $data['price'];
+        try {
+            $product = DB::transaction(function () use ($request) {
+                $data = $request->all();
+                if (empty($data['visibility'])) $data['visibility'] = 'both';
+                if (!isset($data['base_retail_price']) && isset($data['price'])) {
+                    $data['base_retail_price'] = $data['price'];
+                }
+
+                $product = Product::create($data);
+
+                if ($request->has('site_ids')) {
+                    $product->sites()->sync($request->site_ids);
+                }
+
+                return $product;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $product->load(['sites', 'variants', 'images']),
+                'message' => 'Product created successfully.'
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Product creation failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create product: ' . $e->getMessage()
+            ], 500);
         }
-
-        $product = Product::create($data);
-
-        if ($request->has('site_ids')) {
-            $product->sites()->sync($request->site_ids);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $product->load(['sites', 'variants', 'images']),
-            'message' => 'Product created successfully.'
-        ], 201);
     }
 
     /**
@@ -298,22 +312,32 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $data = $request->all();
-        if (!isset($data['base_retail_price']) && isset($data['price'])) {
-            $data['base_retail_price'] = $data['price'];
+        try {
+            DB::transaction(function () use ($request, $product) {
+                $data = $request->all();
+                if (!isset($data['base_retail_price']) && isset($data['price'])) {
+                    $data['base_retail_price'] = $data['price'];
+                }
+
+                $product->update($data);
+
+                if ($request->has('site_ids')) {
+                    $product->sites()->sync($request->site_ids);
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $product->load(['sites', 'variants', 'images']),
+                'message' => 'Product updated successfully.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Product update failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update product: ' . $e->getMessage()
+            ], 500);
         }
-
-        $product->update($data);
-
-        if ($request->has('site_ids')) {
-            $product->sites()->sync($request->site_ids);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $product->load(['sites', 'variants', 'images']),
-            'message' => 'Product updated successfully.'
-        ]);
     }
 
     /**
