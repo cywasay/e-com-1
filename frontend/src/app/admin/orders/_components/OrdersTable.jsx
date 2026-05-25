@@ -1,57 +1,66 @@
 "use client";
 import StatusBadge from "./StatusBadge";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import AdminTableSkeleton from "../../_components/skeletons/AdminTableSkeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function OrdersTable({ orders, isLoading, onSelectOrder }) {
-  if (isLoading) return <LoadingSkeleton />;
-  if (orders?.length === 0) return <div className="py-20 text-center text-gray-400 italic bg-white border border-gray-200">No orders yet.</div>;
+  if (isLoading) return <AdminTableSkeleton rows={6} columns={7} />;
+  if (orders?.length === 0) {
+    return (
+      <Card className="py-20 text-center text-gray-400 italic shadow-sm">
+        No orders yet.
+      </Card>
+    );
+  }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
-      <table className="w-full text-sm text-left border-collapse">
-        <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
-          <tr>
-            <th className="px-6 py-3 font-bold uppercase text-[10px] tracking-widest">Order ID</th>
-            <th className="px-6 py-3 font-bold uppercase text-[10px] tracking-widest">Customer</th>
-            <th className="px-6 py-3 font-bold uppercase text-[10px] tracking-widest">Type</th>
-            <th className="px-6 py-3 font-bold uppercase text-[10px] tracking-widest">Items</th>
-            <th className="px-6 py-3 font-bold uppercase text-[10px] tracking-widest">Total</th>
-            <th className="px-6 py-3 font-bold uppercase text-[10px] tracking-widest">Status</th>
-            <th className="px-6 py-3 font-bold uppercase text-[10px] tracking-widest text-right">Date</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
+    <Card className="overflow-hidden py-0 shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-gray-50">
+            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-gray-500">Order ID</TableHead>
+            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-gray-500">Customer</TableHead>
+            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-gray-500">Type</TableHead>
+            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-gray-500">Items</TableHead>
+            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-gray-500">Total</TableHead>
+            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-gray-500">Status</TableHead>
+            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-gray-500 text-right">Date</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {orders.map((order) => (
-            <tr key={order.id} onClick={() => onSelectOrder(order.id)} className="hover:bg-gray-50 cursor-pointer transition-colors">
-              <td className="px-6 py-4 font-black text-gray-900">#{order.id}</td>
-              <td className="px-6 py-4">
+            <TableRow key={order.id} onClick={() => onSelectOrder(order.id)} className="cursor-pointer">
+              <TableCell className="font-black text-foreground">#{order.id}</TableCell>
+              <TableCell>
                 <div className="font-bold text-gray-700">{order.customer.name}</div>
                 <div className="text-[10px] text-gray-400">{order.customer.email}</div>
-              </td>
-              <td className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">
-                {order.buyer_type === 'b2b' ? <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">Wholesale</span> : <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-sm">Retail</span>}
-              </td>
-              <td className="px-6 py-4 text-gray-600">{order.items?.length || 0} items</td>
-              <td className="px-6 py-4 font-black text-gray-900">AED {order.total_amount}</td>
-              <td className="px-6 py-4"><StatusBadge status={order.status} /></td>
-              <td className="px-6 py-4 text-right text-[10px] text-gray-400 font-bold">{new Date(order.created_at).toLocaleDateString()}</td>
-            </tr>
+              </TableCell>
+              <TableCell className="text-[10px] font-black uppercase tracking-widest">
+                {order.buyer_type === "b2b" ? (
+                  <Badge variant="secondary" className="text-accent">Wholesale</Badge>
+                ) : (
+                  <Badge variant="outline">Retail</Badge>
+                )}
+              </TableCell>
+              <TableCell className="text-gray-600">{order.items?.length || 0} items</TableCell>
+              <TableCell className="font-black text-foreground">AED {order.total_amount}</TableCell>
+              <TableCell><StatusBadge status={order.status} /></TableCell>
+              <TableCell className="text-right text-[10px] text-gray-400 font-bold">
+                {new Date(order.created_at).toLocaleDateString()}
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="animate-pulse h-16 border-b border-gray-100 flex items-center px-6 gap-8">
-          <div className="h-4 w-12 bg-gray-100 rounded" />
-          <div className="h-4 w-40 bg-gray-100 rounded" />
-          <div className="h-4 w-16 bg-gray-100 rounded ml-auto" />
-        </div>
-      ))}
-    </div>
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

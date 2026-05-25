@@ -3,9 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import Link from "next/link";
-import { ArrowRight, Loader2, Briefcase, Building2 } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { ArrowRight, Briefcase, Building2 } from "lucide-react";
+import StorefrontLayout from "@/components/StorefrontLayout";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CaseStudiesClient({ initialCaseStudies }) {
   const { data: casesData, isLoading } = useQuery({
@@ -20,8 +22,7 @@ export default function CaseStudiesClient({ initialCaseStudies }) {
   const caseStudies = casesData?.data || initialCaseStudies || [];
 
   return (
-    <div className="min-h-screen bg-[#f8f7f4] font-sans text-[#1a1a2e]">
-      <Navbar dark={false} />
+    <StorefrontLayout>
 
       {/* Hero Section */}
       <section className="bg-[#1a1a2e] py-24 border-b border-[#ffffff]/10">
@@ -35,11 +36,19 @@ export default function CaseStudiesClient({ initialCaseStudies }) {
         </div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-6 py-20">
+      <div className="max-w-7xl mx-auto px-6 py-20">
         {isLoading && !initialCaseStudies ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 animate-spin text-[#c8a96e] mb-4" />
-            <p className="text-[#1a1a2e] font-medium">Loading Portfolio...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="overflow-hidden py-0">
+                <Skeleton className="aspect-[16/9] w-full" />
+                <CardContent className="space-y-3 p-8">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-7 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : caseStudies.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-lg border border-dashed border-[#e8e4dc]">
@@ -49,9 +58,9 @@ export default function CaseStudiesClient({ initialCaseStudies }) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {caseStudies.map((item) => (
-              <article key={item.id} className="group bg-white border border-[#e8e4dc] rounded-lg overflow-hidden hover:border-[#c8a96e] transition-colors">
-                <Link href={`/case-studies/${item.slug}`} className="flex flex-col h-full">
-                  <div className="aspect-[16/9] bg-[#f8f7f4] relative overflow-hidden">
+              <Card key={item.id} className="group gap-0 overflow-hidden py-0 transition-colors hover:border-accent">
+                <Link href={`/case-studies/${item.slug}`} className="flex h-full flex-col">
+                  <div className="relative aspect-[16/9] overflow-hidden bg-muted">
                     {item.featured_image ? (
                       <img 
                         src={item.featured_image} 
@@ -65,14 +74,14 @@ export default function CaseStudiesClient({ initialCaseStudies }) {
                     )}
                     {item.industry && (
                       <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 rounded bg-white text-[#1a1a2e] text-[10px] font-bold uppercase tracking-widest shadow-sm border border-[#e8e4dc]">
+                        <Badge variant="outline" className="bg-white text-[10px] uppercase tracking-widest shadow-sm">
                           {item.industry}
-                        </span>
+                        </Badge>
                       </div>
                     )}
                   </div>
-                  
-                  <div className="p-8 flex-1 flex flex-col space-y-4">
+
+                  <CardContent className="flex flex-1 flex-col space-y-4 p-8">
                     <div className="flex items-center gap-2 text-[#c8a96e] text-[10px] font-bold uppercase tracking-widest">
                       <Building2 size={12} />
                       {item.client_name || 'Strategic Partnership'}
@@ -90,15 +99,14 @@ export default function CaseStudiesClient({ initialCaseStudies }) {
                       Explore Case Study
                       <ArrowRight size={16} className="text-[#c8a96e]" />
                     </div>
-                  </div>
+                  </CardContent>
                 </Link>
-              </article>
+              </Card>
             ))}
           </div>
         )}
-      </main>
+      </div>
 
-      <Footer />
-    </div>
+    </StorefrontLayout>
   );
 }

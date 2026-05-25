@@ -102,6 +102,7 @@ class OrderController extends Controller
     public function myOrders(Request $request)
     {
         $orders = Order::with(['items.product:id,name'])
+            ->withCount('items')
             ->where('customer_id', $request->user()->id)
             ->latest()
             ->paginate(15);

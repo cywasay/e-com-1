@@ -1,6 +1,7 @@
 import DashboardHeader from "./_components/DashboardHeader";
 import KPICards from "./_components/KPICards";
 import RecentOrders from "./_components/RecentOrders";
+import RecentQuotes from "./_components/RecentQuotes";
 import InventoryAlerts from "./_components/InventoryAlerts";
 
 export const metadata = {
@@ -10,11 +11,12 @@ export const metadata = {
 
 export default function AdminDashboardPage() {
   return (
-    <div className="space-y-12 animate-in fade-in duration-700">
+    <div className="space-y-8">
       <DashboardHeader />
       <KPICards />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-3">
         <RecentOrders />
+        <RecentQuotes />
         <InventoryAlerts />
       </div>
     </div>

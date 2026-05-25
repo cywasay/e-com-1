@@ -1,133 +1,158 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import useCartStore from "@/store/cartStore";
 import useAuthStore from "@/store/authStore";
-import { Trash2 as Trash, Plus as Add, Minus as Sub, ShoppingBag as Bag, ArrowLeft as Back } from "lucide-react";
+import StorefrontLayout from "@/components/StorefrontLayout";
+import { canUseCart } from "@/lib/userRoles";
+import { Trash2 as Trash, Plus as Add, Minus as Sub, ShoppingBag as Bag, FileText } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export default function CartPage() {
-  const { token } = useAuthStore();
-  const router = useRouter();
+  const { user } = useAuthStore();
   const { items, removeItem, updateQuantity, getCartTotal, getCartCount } = useCartStore();
 
-  useEffect(() => {
-    if (!token) {
-      router.push("/login");
-    }
-  }, [token, router]);
-
-  if (!token) return null;
+  if (!canUseCart(user)) {
+    return (
+      <StorefrontLayout>
+        <div className="page-container-narrow py-12">
+          <Card>
+            <CardContent className="p-16 text-center">
+              <FileText className="mx-auto mb-4 text-muted-foreground" size={40} />
+              <h1 className="mb-2 text-2xl font-bold">Wholesale accounts use quotes</h1>
+              <p className="mb-8 text-muted-foreground">
+                B2B buyers request quotes instead of using the cart. Add products to your quote and submit when ready.
+              </p>
+              <Link href="/quote" className={cn(buttonVariants({ variant: "accent", size: "cta" }))}>
+                Go to quote builder
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </StorefrontLayout>
+    );
+  }
 
   return (
-      <div className="min-h-screen bg-[#f8f7f4] font-sans text-[#1a1a2e]">
-        <header className="bg-white border-b border-[#e8e4dc] py-6">
-          <div className="max-w-5xl mx-auto px-4 flex items-center gap-4">
-            <Link href="/products" className="text-[#6b6560] hover:text-[#1a1a2e] transition-colors">
-              <Back size={20} />
-            </Link>
-            <h1 className="text-xl font-bold tracking-tight">Your Cart</h1>
-          </div>
-        </header>
+    <StorefrontLayout>
+      <div className="page-container-narrow py-12">
+        <h1 className="section-heading mb-8">Your Cart</h1>
 
-        <main className="max-w-5xl mx-auto px-4 py-12">
-          {items.length === 0 ? (
-            <div className="bg-white rounded-2xl p-20 text-center shadow-sm border border-[#e8e4dc]">
-              <div className="w-20 h-20 bg-[#f8f7f4] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Bag className="text-[#e8e4dc]" size={40} />
+        {items.length === 0 ? (
+          <Card>
+            <CardContent className="p-20 text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-lg bg-muted">
+                <Bag className="text-border" size={40} />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
-              <p className="text-[#6b6560] mb-8">Looks like you haven't added anything to your cart yet.</p>
-              <Link href="/products" className="inline-block bg-[#c8a96e] text-[#1a1a2e] px-8 py-3 rounded-full font-bold text-sm uppercase tracking-widest hover:bg-[#b89b60] transition-all">
+              <h2 className="mb-2 text-2xl font-bold">Your cart is empty</h2>
+              <p className="mb-8 text-muted-foreground">
+                Looks like you haven&apos;t added anything to your cart yet.
+              </p>
+              <Link href="/products" className={cn(buttonVariants({ variant: "accent", size: "cta" }))}>
                 Browse Products
               </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Items List */}
-              <div className="lg:col-span-8 space-y-4">
-                {items.map((item) => (
-                  <div key={`${item.product_id}-${item.variant_id}`} className="bg-white rounded-2xl p-4 flex items-center gap-6 shadow-sm border border-[#e8e4dc]">
-                    <div className="w-24 h-32 bg-[#f8f7f4] rounded-lg overflow-hidden flex-shrink-0">
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+            <div className="space-y-4 lg:col-span-8">
+              {items.map((item) => (
+                <Card key={`${item.product_id}-${item.variant_id}`}>
+                  <CardContent className="flex items-center gap-6 p-4">
+                    <div className="h-32 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#e8e4dc]">
+                        <div className="flex h-full w-full items-center justify-center text-border">
                           <Bag size={32} />
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="flex-1 space-y-1">
-                      <h3 className="font-bold text-[#1a1a2e]">{item.name}</h3>
+                      <h3 className="font-bold">{item.name}</h3>
                       {item.variant_label && (
-                        <p className="text-xs font-medium text-[#6b6560] uppercase tracking-widest">{item.variant_label}</p>
+                        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                          {item.variant_label}
+                        </p>
                       )}
-                      <p className="text-sm font-semibold pt-1 text-[#1a1a2e]">AED {item.price}</p>
+                      <p className="pt-1 text-sm font-semibold">AED {item.price}</p>
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center border border-[#e8e4dc] rounded-full px-2 py-1 bg-[#f8f7f4]">
-                        <button 
+                      <div className="flex items-center rounded-lg border border-border bg-muted px-2 py-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => updateQuantity(item.product_id, item.variant_id, -1)}
-                          className="p-1 hover:text-[#c8a96e] transition-colors"
                         >
                           <Sub size={14} />
-                        </button>
-                        <span className="w-8 text-center text-sm font-bold text-[#1a1a2e]">{item.quantity}</span>
-                        <button 
+                        </Button>
+                        <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => updateQuantity(item.product_id, item.variant_id, 1)}
-                          className="p-1 hover:text-[#c8a96e] transition-colors"
                         >
                           <Add size={14} />
-                        </button>
+                        </Button>
                       </div>
-                      
-                      <button 
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => removeItem(item.product_id, item.variant_id)}
-                        className="p-2 text-[#6b6560] hover:text-red-500 transition-colors"
+                        className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash size={18} />
-                      </button>
+                      </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-              {/* Summary */}
-              <div className="lg:col-span-4 sticky top-24">
-                <div className="bg-white rounded-2xl p-8 space-y-6 shadow-sm border border-[#e8e4dc]">
-                  <h2 className="text-lg font-bold text-[#1a1a2e]">Order Summary</h2>
-                  
+            <div className="sticky top-24 lg:col-span-4">
+              <Card>
+                <CardContent className="space-y-6 p-8">
+                  <h2 className="text-lg font-bold">Order Summary</h2>
+
                   <div className="space-y-4 text-sm font-medium">
-                    <div className="flex justify-between text-[#6b6560]">
+                    <div className="flex justify-between text-muted-foreground">
                       <span>Subtotal ({getCartCount()} items)</span>
-                      <span className="text-[#1a1a2e]">AED {getCartTotal().toFixed(2)}</span>
+                      <span className="text-foreground">AED {getCartTotal().toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-[#6b6560]">
+                    <div className="flex justify-between text-muted-foreground">
                       <span>Shipping</span>
                       <span className="text-[#2d7a4f]">Calculated at next step</span>
                     </div>
-                    <div className="border-t border-[#e8e4dc] pt-4 flex justify-between text-lg font-bold text-[#1a1a2e]">
+                    <div className="flex justify-between border-t border-border pt-4 text-lg font-bold">
                       <span>Total</span>
                       <span>AED {getCartTotal().toFixed(2)}</span>
                     </div>
                   </div>
 
-                  <Link 
+                  <Link
                     href="/checkout"
-                    className="w-full bg-[#c8a96e] text-[#1a1a2e] py-4 rounded-full font-bold text-sm uppercase tracking-widest hover:bg-[#b89b60] transition-all flex items-center justify-center"
+                    className={cn(buttonVariants({ variant: "accent", size: "cta" }), "w-full")}
                   >
                     Proceed to Checkout
                   </Link>
 
-                  <p className="text-[10px] text-center text-[#6b6560] font-medium">Secure checkout powered by Stripe</p>
-                </div>
-              </div>
+                  <p className="text-center text-[10px] font-medium text-muted-foreground">
+                    Secure checkout powered by Stripe
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </main>
+          </div>
+        )}
       </div>
+    </StorefrontLayout>
   );
 }

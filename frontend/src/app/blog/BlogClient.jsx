@@ -1,30 +1,36 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import Link from "next/link";
-import { Calendar, User, ArrowRight, BookOpen, Loader2 } from "lucide-react";
+import { Calendar, User, ArrowRight, BookOpen } from "lucide-react";
 import { format } from "date-fns";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import StorefrontLayout from "@/components/StorefrontLayout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function BlogClient({ initialPosts }) {
-  const { data: postsData, isLoading } = useQuery({
-    queryKey: ["public-blog"],
+export default function BlogClient({ initialData }) {
+  const [page, setPage] = useState(1);
+
+  const { data: postsData, isLoading, isFetching } = useQuery({
+    queryKey: ["public-blog", page],
     queryFn: async () => {
-      const response = await api.get("/blog");
+      const response = await api.get("/blog", { params: { page } });
       return response.data;
     },
-    initialData: initialPosts ? { data: initialPosts } : undefined
+    initialData: page === 1 ? initialData || undefined : undefined,
+    placeholderData: (previous) => previous,
   });
 
-  const posts = postsData?.data || initialPosts || [];
+  const posts = postsData?.data || [];
+  const lastPage = postsData?.last_page || 1;
+  const currentPage = postsData?.current_page || page;
 
   return (
-    <div className="min-h-screen bg-[#f8f7f4] font-sans text-[#1a1a2e]">
-      <Navbar dark={false} />
-
-      {/* Hero Section */}
+    <StorefrontLayout>
       <section className="bg-[#1a1a2e] py-24 border-b border-[#ffffff]/10">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6">
@@ -36,26 +42,34 @@ export default function BlogClient({ initialPosts }) {
         </div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-6 py-20">
-        {isLoading && !initialPosts ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 animate-spin text-[#c8a96e] mb-4" />
-            <p className="text-[#1a1a2e] font-medium">Loading Archive...</p>
+      <div className="max-w-7xl mx-auto px-6 py-20">
+        {isLoading && !posts.length ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="overflow-hidden py-0">
+                <Skeleton className="aspect-[16/10] w-full" />
+                <CardContent className="space-y-3 p-6">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#6b6560]">No stories found in the archive yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity ${isFetching ? "opacity-70" : ""}`}>
             {posts.map((post) => (
-              <article key={post.id} className="group bg-white border border-[#e8e4dc] rounded-lg overflow-hidden hover:border-[#c8a96e] transition-colors">
+              <Card key={post.id} className="group gap-0 overflow-hidden py-0 transition-colors hover:border-accent">
                 <Link href={`/blog/${post.slug}`} className="block">
-                  <div className="aspect-[16/10] bg-[#f8f7f4] relative overflow-hidden">
+                  <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                     {post.featured_image ? (
-                      <img 
-                        src={post.featured_image} 
-                        alt={post.title} 
+                      <img
+                        src={post.featured_image}
+                        alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
@@ -65,14 +79,14 @@ export default function BlogClient({ initialPosts }) {
                     )}
                     {post.category_tag && (
                       <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 rounded bg-white text-[#1a1a2e] text-[10px] font-bold uppercase tracking-wider shadow-sm border border-[#e8e4dc]">
+                        <Badge variant="outline" className="bg-white text-[10px] uppercase tracking-wider shadow-sm">
                           {post.category_tag}
-                        </span>
+                        </Badge>
                       </div>
                     )}
                   </div>
-                  
-                  <div className="p-6 space-y-4">
+
+                  <CardContent className="space-y-4 p-6">
                     <div className="flex items-center gap-4 text-xs font-medium text-[#6b6560] uppercase tracking-widest">
                       <span className="flex items-center gap-1">
                         <Calendar size={12} />
@@ -83,46 +97,46 @@ export default function BlogClient({ initialPosts }) {
                         {post.author?.name}
                       </span>
                     </div>
-                    
+
                     <h2 className="text-xl font-bold text-[#1a1a2e] group-hover:text-[#c8a96e] transition-colors line-clamp-2 leading-tight">
                       {post.title}
                     </h2>
-                    
+
                     <p className="text-[#6b6560] line-clamp-3 text-sm leading-relaxed">
-                      {post.excerpt || (post.content && post.content.substring(0, 160).replace(/[#*`]/g, '') + '...')}
+                      {post.excerpt || (post.content && post.content.substring(0, 160).replace(/[#*`]/g, "") + "...")}
                     </p>
-                    
+
                     <div className="pt-2 flex items-center gap-2 text-[#c8a96e] font-bold text-xs uppercase tracking-widest group-hover:gap-3 transition-all">
                       Read Article
                       <ArrowRight size={14} />
                     </div>
-                  </div>
+                  </CardContent>
                 </Link>
-              </article>
+              </Card>
             ))}
           </div>
         )}
 
-        {/* Pagination */}
-        {postsData?.last_page > 1 && (
+        {lastPage > 1 && (
           <div className="mt-16 pt-10 border-t border-[#e8e4dc] flex justify-center gap-2">
-            {[...Array(postsData.last_page)].map((_, i) => (
-              <button 
-                key={i}
-                className={`w-10 h-10 rounded-md flex items-center justify-center text-xs font-bold transition-all ${
-                  postsData.current_page === i + 1 
-                    ? 'bg-[#c8a96e] text-[#1a1a2e]' 
-                    : 'bg-white border border-[#e8e4dc] text-[#6b6560] hover:bg-[#f8f7f4] hover:text-[#1a1a2e]'
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {[...Array(lastPage)].map((_, i) => {
+              const pageNum = i + 1;
+              return (
+                <Button
+                  key={pageNum}
+                  type="button"
+                  variant={currentPage === pageNum ? "accent" : "outline"}
+                  size="icon-sm"
+                  className="h-10 w-10 text-xs font-bold"
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
           </div>
         )}
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </StorefrontLayout>
   );
 }

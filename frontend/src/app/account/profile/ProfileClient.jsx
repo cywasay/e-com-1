@@ -9,6 +9,7 @@ import api from "@/lib/api";
 import { useState, useEffect } from "react";
 import ProfileInfoForm from "./_components/ProfileInfoForm";
 import SecurityForm from "./_components/SecurityForm";
+import AccountPageHeader from "../_components/AccountPageHeader";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -61,11 +62,11 @@ export default function ProfileClient() {
   });
 
   return (
-    <div className="max-w-3xl space-y-20">
-      <div>
-        <h2 className="text-2xl font-bold text-[#1a1a2e]">Profile Settings</h2>
-        <p className="text-[14px] text-[#6b6560] mt-1">Manage your account identity and company details.</p>
-      </div>
+    <div className="max-w-3xl space-y-16">
+      <AccountPageHeader
+        title="Profile settings"
+        description="Manage your account identity and company details."
+      />
 
       <ProfileInfoForm 
         user={user} register={registerProfile} errors={profileErrors} 

@@ -1,54 +1,69 @@
 "use client";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 export default function ProductBasicInfo({ formData, setFormData, categoryOptions }) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Product Name</label>
-        <input 
+        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Product Name</Label>
+        <Input
           required
           type="text"
           value={formData.name ?? ""}
-          onChange={(e) => setFormData({...formData, name: e.target.value})}
-          className="w-full bg-white border border-slate-200 px-4 py-2.5 text-sm rounded focus:outline-none focus:border-blue-500 transition-colors"
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., Premium Cotton Lab Coat"
         />
       </div>
       <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Category</label>
-        <select 
-          value={formData.category_id ?? ""}
-          onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-          className="w-full bg-white border border-slate-200 px-4 py-2.5 text-sm rounded focus:outline-none focus:border-blue-500 transition-colors"
+        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Category</Label>
+        <Select
+          value={formData.category_id ? String(formData.category_id) : "none"}
+          onValueChange={(v) => setFormData({ ...formData, category_id: v === "none" ? "" : v })}
         >
-          <option value="">Uncategorized</option>
-          {categoryOptions.map(opt => (
-            <option key={opt.id} value={opt.id}>{opt.name}</option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Uncategorized" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Uncategorized</SelectItem>
+            {categoryOptions.map((opt) => (
+              <SelectItem key={opt.id} value={String(opt.id)}>{opt.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Status</label>
-        <select 
-          value={formData.status ?? "draft"}
-          onChange={(e) => setFormData({...formData, status: e.target.value})}
-          className="w-full bg-white border border-slate-200 px-4 py-2.5 text-sm rounded focus:outline-none focus:border-blue-500 transition-colors"
-        >
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
-        </select>
+        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</Label>
+        <Select value={formData.status ?? "draft"} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="published">Published</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Visibility</label>
-        <select 
-          value={formData.visibility ?? "both"}
-          onChange={(e) => setFormData({...formData, visibility: e.target.value})}
-          className="w-full bg-white border border-slate-200 px-4 py-2.5 text-sm rounded focus:outline-none focus:border-blue-500 transition-colors"
-        >
-          <option value="both">Both (B2B & B2C)</option>
-          <option value="b2c_only">B2C Only</option>
-          <option value="b2b_only">B2B Only</option>
-        </select>
+        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Visibility</Label>
+        <Select value={formData.visibility ?? "both"} onValueChange={(v) => setFormData({ ...formData, visibility: v })}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="both">Both (B2B & B2C)</SelectItem>
+            <SelectItem value="b2c_only">B2C Only</SelectItem>
+            <SelectItem value="b2b_only">B2B Only</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

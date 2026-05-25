@@ -4,11 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Product;
+use App\Services\PricingService;
+use App\Services\PublicProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
 {
+    public function __construct(
+        protected PricingService $pricingService,
+        protected PublicProductService $publicProductService,
+    ) {
+    }
     /**
      * Administrative listing.
      */
@@ -39,6 +47,54 @@ class CategoryController extends Controller
         return response()->json([
             'success' => true,
             'data' => $categories
+        ]);
+    }
+
+    /**
+     * Public category hub by slug.
+     */
+    public function showBySlug(Request $request, $slug)
+    {
+        $category = Category::where('slug', $slug)
+            ->where('is_active', true)
+            ->with([
+                'parent:id,name,slug',
+                'children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order'),
+            ])
+            ->first();
+
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category not found.',
+            ], 404);
+        }
+
+        $categoryIds = $category->descendantIds();
+        $user = $request->user('sanctum');
+
+        $publishedProductQuery = Product::query();
+        $this->publicProductService->applyStorefrontScope($publishedProductQuery, $user);
+        $publishedProductQuery->whereIn('category_id', $categoryIds);
+
+        $featuredProducts = (clone $publishedProductQuery)
+            ->where('is_featured', true)
+            ->with(['category:id,name,slug', 'images'])
+            ->orderByDesc('updated_at')
+            ->limit(8)
+            ->get();
+
+        $this->pricingService->resolvePricesForCollection($featuredProducts, $user);
+        $this->publicProductService->sanitizeCollection($featuredProducts, $user);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'category' => $category,
+                'subcategories' => $category->children,
+                'featured_products' => $featuredProducts,
+                'product_count' => (clone $publishedProductQuery)->count(),
+            ],
         ]);
     }
 

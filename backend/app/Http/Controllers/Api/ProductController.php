@@ -3,25 +3,30 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ProductImage;
 use App\Services\PricingService;
+use App\Services\PublicProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ProductsImport;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
     protected $pricingService;
+    protected $publicProductService;
 
-    public function __construct(PricingService $pricingService)
+    public function __construct(PricingService $pricingService, PublicProductService $publicProductService)
     {
         $this->pricingService = $pricingService;
+        $this->publicProductService = $publicProductService;
     }
 
     /**
@@ -29,8 +34,13 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        // Admin should see EVERYTHING including soft-deleted and incomplete products
-        $query = Product::withTrashed()->with(['category:id,name', 'sites:id,name,domain', 'images', 'variants']);
+        $user = $request->user();
+        $isAdmin = $user && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN_STAFF]);
+
+        // Only admins see soft-deleted products
+        $query = $isAdmin ? Product::withTrashed() : Product::query();
+        
+        $query->with(['category:id,name', 'sites:id,name,domain', 'images', 'variants']);
 
         // Only apply filters if explicitly requested
         if ($request->filled('status') && $request->status !== 'all') {
@@ -68,11 +78,8 @@ class ProductController extends Controller
 
         $products = $query->paginate(20);
 
-        // Resolve prices
-        $user = $request->user();
-        foreach ($products as $product) {
-            $product->resolved_price = $this->pricingService->resolvePrice($product, $user);
-        }
+        // Resolve prices in batch (eliminates N+1 queries)
+        $this->pricingService->resolvePricesForCollection($products->getCollection(), $user);
 
         return response()->json([
             'success' => true,
@@ -109,20 +116,26 @@ class ProductController extends Controller
      */
     public function indexPublic(Request $request)
     {
-        $query = Product::where('status', 'published')
-            ->whereNotNull('name')
-            ->where(function ($q) {
-                $q->whereNotNull('base_retail_price')
-                  ->orWhereNotNull('price');
-            })
-            ->with(['category:id,name', 'images']);
+        $user = $request->user('sanctum');
+        $query = Product::query();
+        $this->publicProductService->applyStorefrontScope($query, $user);
+        $query->with(['category:id,name', 'images']);
 
-        if ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
+        if ($request->filled('category_id')) {
+            $category = Category::where('is_active', true)->find($request->category_id);
+            if ($category) {
+                $query->whereIn('category_id', $category->descendantIds());
+            } else {
+                $query->where('category_id', $request->category_id);
+            }
         }
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->boolean('is_featured')) {
+            $query->where('is_featured', true);
         }
 
         // Availability filter
@@ -146,13 +159,11 @@ class ProductController extends Controller
             $query->latest();
         }
 
-        $products = $query->paginate(20);
+        $perPage = min(max((int) $request->input('per_page', 20), 1), 50);
+        $products = $query->paginate($perPage);
 
-        // Resolve prices
-        $user = $request->user('sanctum');
-        foreach ($products as $product) {
-            $product->resolved_price = $this->pricingService->resolvePrice($product, $user);
-        }
+        $this->pricingService->resolvePricesForCollection($products->getCollection(), $user);
+        $this->publicProductService->sanitizeCollection($products->getCollection(), $user);
 
         return response()->json([
             'success' => true,
@@ -165,16 +176,24 @@ class ProductController extends Controller
      */
     public function showBySlug(Request $request, $slug)
     {
+        $user = $request->user('sanctum');
+
         $product = Product::where('slug', $slug)
             ->where('status', 'published')
+            ->whereNotNull('name')
+            ->where(function ($q) {
+                $q->whereNotNull('base_retail_price')
+                    ->orWhereNotNull('price');
+            })
             ->with(['category', 'variants', 'images'])
             ->first();
 
-        if (!$product) {
+        if (!$product || !$this->publicProductService->isProductVisibleTo($product, $user)) {
             return response()->json(['success' => false, 'message' => 'Product not found.'], 404);
         }
 
-        $product->resolved_price = $this->pricingService->resolvePrice($product, $request->user('sanctum'));
+        $product->resolved_price = $this->pricingService->resolvePrice($product, $user);
+        $this->publicProductService->sanitizeProduct($product, $user);
 
         return response()->json([
             'success' => true,

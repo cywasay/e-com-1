@@ -14,6 +14,7 @@ class Order extends Model
         'customer_id',
         'buyer_type',
         'stripe_payment_intent',
+        'stripe_checkout_session',
         'total_amount',
         'shipping_address',
         'status',

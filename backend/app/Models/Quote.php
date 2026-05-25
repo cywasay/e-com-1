@@ -10,6 +10,7 @@ class Quote extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'phone',
@@ -19,4 +20,14 @@ class Quote extends Model
         'status',
         'admin_notes',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function items()
+    {
+        return $this->hasMany(QuoteItem::class);
+    }
 }

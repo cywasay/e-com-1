@@ -91,4 +91,28 @@ class Category extends Model
     {
         return $this->belongsToMany(Site::class, 'site_category')->withTimestamps();
     }
+
+    /**
+     * Relationship: Products in this category.
+     */
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Collect this category id and all active descendant ids.
+     */
+    public function descendantIds(): array
+    {
+        $ids = [$this->id];
+
+        $this->loadMissing(['children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')]);
+
+        foreach ($this->children as $child) {
+            $ids = array_merge($ids, $child->descendantIds());
+        }
+
+        return array_values(array_unique($ids));
+    }
 }

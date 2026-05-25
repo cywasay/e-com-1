@@ -8,8 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import api from "@/lib/api";
 import useAuthStore from "@/store/authStore";
-import LoginHeader from "./_components/LoginHeader";
+import StorefrontLayout from "@/components/StorefrontLayout";
 import LoginForm from "./_components/LoginForm";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -43,19 +44,24 @@ export default function LoginClient() {
   };
 
   return (
-    <div className="min-h-[90vh] flex flex-col items-center justify-center bg-[#f8f7f4] px-4 py-12 font-sans text-[#1a1a2e]">
-      <LoginHeader />
-      <div className="w-full max-w-md bg-white rounded-lg shadow-sm border border-[#e8e4dc] overflow-hidden">
-        <div className="p-8">
-          <LoginForm 
-            register={register} errors={errors} isSubmitting={isSubmitting} 
-            onSubmit={handleSubmit(onSubmit)} serverError={serverError} 
-          />
+    <StorefrontLayout>
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold tracking-tight mb-2">Welcome Back</h1>
+          <p className="text-muted-foreground text-sm">Sign in to your uniforms.ae account</p>
         </div>
-        <div className="px-8 py-5 bg-[#f8f7f4] border-t border-[#e8e4dc] text-center">
-          <p className="text-sm text-[#6b6560]">Don't have an account? <Link href="/register" className="font-semibold text-[#c8a96e]">Register here</Link></p>
-        </div>
+        <Card className="w-full max-w-md overflow-hidden">
+          <CardContent className="p-8">
+            <LoginForm
+              register={register} errors={errors} isSubmitting={isSubmitting}
+              onSubmit={handleSubmit(onSubmit)} serverError={serverError}
+            />
+          </CardContent>
+          <CardFooter className="justify-center border-t bg-muted px-8 py-5">
+            <p className="text-sm text-muted-foreground">Don&apos;t have an account? <Link href="/register" className="font-semibold text-accent">Register here</Link></p>
+          </CardFooter>
+        </Card>
       </div>
-    </div>
+    </StorefrontLayout>
   );
 }

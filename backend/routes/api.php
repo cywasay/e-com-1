@@ -10,6 +10,8 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login',    [AuthController::class, 'login']);
+        Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     });
 
     Route::post('/quotes', [\App\Http\Controllers\Api\QuoteController::class, 'store']);
@@ -19,17 +21,21 @@ Route::prefix('v1')->group(function () {
     Route::get('/products', [\App\Http\Controllers\Api\ProductController::class, 'indexPublic']);
     Route::get('/products/slug/{slug}', [\App\Http\Controllers\Api\ProductController::class, 'showBySlug']);
     Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 'indexPublic']);
+    Route::get('/categories/{slug}', [\App\Http\Controllers\Api\CategoryController::class, 'showBySlug']);
+    Route::get('/search', \App\Http\Controllers\Api\SearchController::class);
     Route::get('/blog', [\App\Http\Controllers\Api\BlogController::class, 'indexPublic']);
     Route::get('/blog/{slug}', [\App\Http\Controllers\Api\BlogController::class, 'showPublic']);
     Route::get('/case-studies', [\App\Http\Controllers\Api\CaseStudyController::class, 'indexPublic']);
     Route::get('/case-studies/{slug}', [\App\Http\Controllers\Api\CaseStudyController::class, 'showPublic']);
     Route::get('/catalogs', [\App\Http\Controllers\Api\CatalogController::class, 'indexPublic']);
+    Route::get('/settings/public', [\App\Http\Controllers\Api\SettingsController::class, 'publicSettings']);
 
     // ── Auth (protected) ───────────────────────────────────────────
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me',      [AuthController::class, 'me']);
         Route::post('/checkout/session', [\App\Http\Controllers\Api\CheckoutController::class, 'createSession']);
+        Route::get('/checkout/session/{sessionId}', [\App\Http\Controllers\Api\CheckoutController::class, 'verifySession']);
 
         // Admin Routes
         Route::middleware('role:super_admin,admin_staff')->group(function () {
@@ -117,6 +123,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/orders/{id}', [\App\Http\Controllers\Api\OrderController::class, 'myOrderDetail']);
 
         // Account (Customer)
+        Route::get('/account/summary', [\App\Http\Controllers\Api\AccountController::class, 'summary']);
+        Route::get('/account/quotes', [\App\Http\Controllers\Api\AccountController::class, 'myQuotes']);
         Route::put('/account/profile', [\App\Http\Controllers\Api\AccountController::class, 'updateProfile']);
         Route::put('/account/address', [\App\Http\Controllers\Api\AccountController::class, 'updateAddress']);
 

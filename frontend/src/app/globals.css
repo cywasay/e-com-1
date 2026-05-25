@@ -17,6 +17,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-destructive: var(--destructive);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
@@ -38,6 +43,15 @@
   
   --accent: #c8a96e;
   --accent-foreground: #1a1a2e;
+
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --popover: #ffffff;
+  --popover-foreground: #1a1a2e;
   
   --border: #e8e4dc;
   --input: #f8f7f4;
@@ -60,14 +74,43 @@
 
 @layer components {
   .glass {
-    @apply bg-white border border-[#e8e4dc] shadow-sm;
+    @apply bg-white border border-border shadow-sm;
   }
-  
+
   .premium-card {
-    @apply bg-white border border-[#e8e4dc] shadow-sm rounded-lg;
+    @apply bg-white border border-border shadow-sm rounded-lg;
   }
-  
+
+  .product-card {
+    @apply bg-white border border-border rounded-lg;
+  }
+
   .btn-premium {
-    @apply px-5 py-2.5 rounded-md font-bold text-sm bg-[#c8a96e] text-[#1a1a2e] hover:bg-[#b89b60] transition-colors uppercase tracking-widest;
+    @apply inline-flex items-center justify-center h-10 px-5 rounded-lg font-bold text-xs bg-accent text-accent-foreground hover:bg-[#b89b60] transition-colors uppercase tracking-widest;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center h-10 px-5 rounded-lg font-bold text-xs border border-border bg-background text-foreground hover:border-accent hover:text-accent transition-colors uppercase tracking-widest;
+  }
+
+  .page-container {
+    @apply max-w-7xl mx-auto px-6;
+  }
+
+  .page-container-narrow {
+    @apply max-w-5xl mx-auto px-6;
+  }
+
+  .section-heading {
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-foreground;
+  }
+
+  .admin-sidebar-nav {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .admin-sidebar-nav::-webkit-scrollbar {
+    display: none;
   }
 }

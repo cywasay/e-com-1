@@ -1,18 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import api from "@/lib/api";
+import AdminListPageSkeleton from "../_components/skeletons/AdminListPageSkeleton";
 import OrdersFilters from "./_components/OrdersFilters";
 import OrdersTable from "./_components/OrdersTable";
 import OrderDetailsPanel from "./_components/OrderDetailsPanel";
+import AdminPageHeader from "../_components/AdminPageHeader";
 
-export default function OrdersClient() {
+function OrdersClientInner() {
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [buyerType, setBuyerType] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id) setSelectedOrderId(id);
+  }, [searchParams]);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders", search, status, buyerType],
@@ -32,15 +42,20 @@ export default function OrdersClient() {
     onSuccess: () => {
       queryClient.invalidateQueries(["admin-orders"]);
       queryClient.invalidateQueries(["admin-order-detail", selectedOrderId]);
-      alert("Order updated successfully");
+      queryClient.invalidateQueries(["admin-dashboard"]);
+      toast.success("Order updated successfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update order");
     },
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Order Management</h3>
-      </div>
+      <AdminPageHeader
+        title="Orders"
+        description="Review and update customer order status and fulfillment."
+      />
 
       <OrdersFilters 
         search={search} setSearch={setSearch} 
@@ -63,5 +78,13 @@ export default function OrdersClient() {
         isUpdating={updateStatusMutation.isPending} 
       />
     </div>
+  );
+}
+
+export default function OrdersClient() {
+  return (
+    <Suspense fallback={<AdminListPageSkeleton showFilters tableColumns={7} />}>
+      <OrdersClientInner />
+    </Suspense>
   );
 }

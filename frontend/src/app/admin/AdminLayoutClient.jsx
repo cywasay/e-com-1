@@ -1,162 +1,209 @@
 "use client";
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Toaster } from 'react-hot-toast';
-import useAuthStore from '@/store/authStore';
-import { 
-  LayoutDashboard, 
-  Tag, 
-  ShoppingBag, 
-  Settings, 
-  Users, 
-  CheckCircle2, 
-  Store, 
-  Clock, 
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Toaster } from "react-hot-toast";
+import useAuthStore from "@/store/authStore";
+import { useConfirm } from "@/components/ConfirmProvider";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  LayoutDashboard,
+  FolderTree,
+  ShoppingBag,
+  Settings,
+  Users,
+  CheckCircle2,
+  Store,
+  Clock,
   LogOut,
-  ChevronRight,
+  ExternalLink,
   User as UserIcon,
   FileText,
   Briefcase,
-  BookOpen
-} from 'lucide-react';
+  BookOpen,
+  Package,
+  CircleDollarSign,
+} from "lucide-react";
+
+const NAV_SECTIONS = [
+  {
+    label: "Management",
+    items: [
+      { href: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
+      { href: "/admin/products", icon: Package, label: "Products" },
+      { href: "/admin/categories", icon: FolderTree, label: "Categories" },
+      { href: "/admin/sites", icon: Store, label: "Sites", superAdminOnly: true },
+      { href: "/admin/orders", icon: ShoppingBag, label: "Orders" },
+      { href: "/admin/customers", icon: Users, label: "Customers" },
+      { href: "/admin/pricing", icon: CircleDollarSign, label: "Pricing" },
+    ],
+  },
+  {
+    label: "Inquiries",
+    items: [
+      { href: "/admin/quotes", icon: Clock, label: "Quotes" },
+      { href: "/admin/b2b-applications", icon: CheckCircle2, label: "B2B Applications" },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { href: "/admin/blog", icon: FileText, label: "Blog" },
+      { href: "/admin/case-studies", icon: Briefcase, label: "Case Studies" },
+      { href: "/admin/catalogs", icon: BookOpen, label: "Catalogs" },
+    ],
+  },
+  {
+    label: "Settings",
+    superAdminOnly: true,
+    items: [{ href: "/admin/settings", icon: Settings, label: "Store Settings" }],
+  },
+];
+
+function NavLink({ href, icon: Icon, label, exact = false, pathname }) {
+  const active = exact ? pathname === href : pathname.startsWith(href);
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+        active
+          ? "bg-accent/15 text-accent border-l-2 border-accent -ml-px pl-[calc(0.75rem-2px)]"
+          : "text-white/65 hover:bg-white/5 hover:text-white border-l-2 border-transparent"
+      )}
+    >
+      <Icon size={17} className="shrink-0 opacity-90" />
+      <span>{label}</span>
+    </Link>
+  );
+}
 
 export default function AdminLayoutClient({ children }) {
   const pathname = usePathname();
-  const user = useAuthStore(state => state.user);
-  const logout = useAuthStore(state => state.logout);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const confirm = useConfirm();
+  const isSuperAdmin = user?.role === "super_admin";
 
-  const NavLink = ({ href, children, icon: Icon }) => {
-    const isExact = href === '/admin';
-    const active = isExact ? pathname === href : pathname.startsWith(href);
-
-    return (
-      <Link
-        href={href}
-        className={`group flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-100 ${
-          active 
-            ? 'bg-blue-600 text-white' 
-            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900'
-        }`}
-      >
-        <Icon size={18} className="flex-shrink-0" />
-        <span className="text-sm font-medium">{children}</span>
-        {active && (
-          <ChevronRight size={14} className="ml-auto opacity-70" />
-        )}
-      </Link>
-    );
+  const handleLogout = async () => {
+    const confirmed = await confirm({
+      title: "Log out?",
+      description: "You will need to sign in again to access the admin panel.",
+      confirmLabel: "Log out",
+      destructive: true,
+    });
+    if (confirmed) logout();
   };
 
   return (
     <>
-      <div className="flex min-h-screen bg-[#F8FAFC]">
-        {/* Sidebar */}
-        <aside className="w-64 fixed inset-y-0 left-0 bg-slate-950 border-r border-slate-900 flex flex-col z-50">
-          <div className="h-16 flex items-center px-6 border-b border-slate-900">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 bg-blue-600 rounded flex items-center justify-center text-white">
-                <span className="text-white font-bold text-sm">U</span>
+      <div className="flex min-h-screen bg-background">
+        <aside className="fixed inset-y-0 left-0 z-50 flex h-svh w-64 flex-col overflow-hidden border-r border-white/10 bg-primary">
+          <div className="flex h-16 shrink-0 items-center border-b border-white/10 px-5">
+            <Link href="/admin" className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                <span className="text-sm font-black">U</span>
               </div>
-              <h1 className="text-white font-bold text-base tracking-wider">
-                uniforms<span className="text-blue-500">.ae</span>
-              </h1>
+              <span className="text-base font-bold tracking-tight text-white">
+                uniforms<span className="text-accent">.ae</span>
+              </span>
+            </Link>
+          </div>
+
+          <div className="admin-sidebar-nav min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5">
+            <div className="space-y-6">
+              {NAV_SECTIONS.map((section) => {
+                if (section.superAdminOnly && !isSuperAdmin) return null;
+
+                const items = section.items.filter(
+                  (item) => !item.superAdminOnly || isSuperAdmin
+                );
+                if (items.length === 0) return null;
+
+                return (
+                  <div key={section.label}>
+                    <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                      {section.label}
+                    </p>
+                    <nav className="space-y-0.5">
+                      {items.map((item) => (
+                        <NavLink key={item.href} {...item} pathname={pathname} />
+                      ))}
+                    </nav>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-3 py-6 space-y-7 custom-scrollbar">
-            <div>
-              <p className="px-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                Management
-              </p>
-              <nav className="space-y-1">
-                <NavLink href="/admin" icon={LayoutDashboard}>Dashboard</NavLink>
-                <NavLink href="/admin/products" icon={ShoppingBag}>Products</NavLink>
-                <NavLink href="/admin/categories" icon={Tag}>Categories</NavLink>
-                {user?.role === 'super_admin' && (
-                  <NavLink href="/admin/sites" icon={Store}>Sites</NavLink>
-                )}
-                <NavLink href="/admin/orders" icon={ShoppingBag}>Orders</NavLink>
-                <NavLink href="/admin/customers" icon={Users}>Customers</NavLink>
-                {user?.role === 'super_admin' && (
-                  <NavLink href="/admin/pricing" icon={Tag}>Pricing Engine</NavLink>
-                )}
-              </nav>
-            </div>
-
-            <div>
-              <p className="px-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                Inquiries
-              </p>
-              <nav className="space-y-1">
-                <NavLink href="/admin/quotes" icon={Clock}>Quotes</NavLink>
-                <NavLink href="/admin/b2b-applications" icon={CheckCircle2}>B2B Applications</NavLink>
-              </nav>
-            </div>
-
-            <div>
-              <p className="px-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                Content
-              </p>
-              <nav className="space-y-1">
-                <NavLink href="/admin/blog" icon={FileText}>Blog</NavLink>
-                <NavLink href="/admin/case-studies" icon={Briefcase}>Case Studies</NavLink>
-                <NavLink href="/admin/catalogs" icon={BookOpen}>Catalogs</NavLink>
-              </nav>
-            </div>
-
-            {user?.role === 'super_admin' && (
-              <div>
-                <p className="px-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Settings
-                </p>
-                <nav className="space-y-1">
-                  <NavLink href="/admin/settings" icon={Settings}>Store Settings</NavLink>
-                </nav>
-              </div>
-            )}
-
-            <div className="pt-4 border-t border-slate-900">
-              <button 
-                onClick={logout}
-                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-colors duration-100"
-              >
-                <LogOut size={18} />
-                <span className="text-sm font-medium">Logout</span>
-              </button>
-            </div>
+          <div className="shrink-0 border-t border-white/10 p-3">
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="w-full justify-start gap-3 text-white/65 hover:bg-red-500/10 hover:text-red-300"
+            >
+              <LogOut size={17} />
+              Log out
+            </Button>
           </div>
         </aside>
 
-        <div className="flex-1 ml-64 flex flex-col min-h-screen">
-          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-40">
-            <div className="flex flex-col">
-              <h2 className="text-sm font-bold text-slate-400 tracking-widest uppercase">uniforms.ae</h2>
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Admin Panel</h2>
+        <div className="ml-64 flex min-h-screen flex-1 flex-col">
+          <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card px-6 lg:px-8">
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="hidden sm:inline-flex uppercase tracking-widest text-[10px]">
+                Admin
+              </Badge>
+              <Separator orientation="vertical" className="hidden h-4 sm:block" />
+              <p className="text-sm font-medium text-muted-foreground hidden sm:block">
+                Store management console
+              </p>
             </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden md:block">
-                <p className="text-xs font-bold text-slate-900">{user?.name || 'Admin'}</p>
-                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{user?.role?.replace('_', ' ')}</p>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                <ExternalLink size={14} />
+                View storefront
+              </Link>
+              <Separator orientation="vertical" className="h-4" />
+              <div className="hidden text-right md:block">
+                <p className="text-xs font-semibold text-foreground">{user?.name || "Admin"}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {user?.role?.replace(/_/g, " ")}
+                </p>
               </div>
-              <div className="w-px h-4 bg-slate-200" />
-              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
-                <UserIcon size={16} className="text-slate-500" />
-              </div>
+              <Avatar size="sm">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                  {user?.name?.charAt(0)?.toUpperCase() || <UserIcon size={14} />}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </header>
 
-          <main className="flex-1 p-8">
-            {children}
+          <main className="flex-1 p-6 lg:p-8">
+            <div className="mx-auto max-w-[1600px]">{children}</div>
           </main>
         </div>
-        <style jsx global>{`
-          .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-          .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-        `}</style>
       </div>
-      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "var(--card)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+          },
+        }}
+      />
     </>
   );
 }

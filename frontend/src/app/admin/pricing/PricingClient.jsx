@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import api from "@/lib/api";
 import PriceSetList from "./_components/PriceSetList";
 import PriceSetDetail from "./_components/PriceSetDetail";
 import PricePreviewTool from "./_components/PricePreviewTool";
 import CreatePriceSetModal from "./_components/CreatePriceSetModal";
+import AdminPageHeader from "../_components/AdminPageHeader";
 import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function PricingClient() {
   const [selectedSetId, setSelectedSetId] = useState(null);
@@ -41,6 +44,7 @@ export default function PricingClient() {
 
   const previewMutation = useMutation({
     mutationFn: (data) => api.post("/admin/pricing/preview", data).then(res => res.data.data),
+    onError: (error) => toast.error(error.response?.data?.message || "Preview failed"),
   });
 
   const createMutation = useMutation({
@@ -49,32 +53,49 @@ export default function PricingClient() {
       queryClient.invalidateQueries(["admin-price-sets"]);
       setShowCreateModal(false);
       setSelectedSetId(res.data.data.id);
+      toast.success("Price set created");
     },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to create price set"),
   });
 
   const addItemMutation = useMutation({
     mutationFn: (data) => api.post(`/admin/price-sets/${selectedSetId}/items`, data),
-    onSuccess: () => queryClient.invalidateQueries(["admin-price-set-detail", selectedSetId]),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin-price-set-detail", selectedSetId]);
+      toast.success("Price item added");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to add price item"),
   });
 
   const removeItemMutation = useMutation({
     mutationFn: (itemId) => api.delete(`/admin/price-sets/${selectedSetId}/items/${itemId}`),
-    onSuccess: () => queryClient.invalidateQueries(["admin-price-set-detail", selectedSetId]),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin-price-set-detail", selectedSetId]);
+      toast.success("Price item removed");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to remove price item"),
   });
 
   const assignMutation = useMutation({
     mutationFn: (data) => api.post(`/admin/price-sets/${selectedSetId}/assignments`, data),
-    onSuccess: () => queryClient.invalidateQueries(["admin-price-set-detail", selectedSetId]),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin-price-set-detail", selectedSetId]);
+      toast.success("Assignment saved");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to save assignment"),
   });
 
   return (
     <div className="space-y-12 pb-20">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Pricing Engine</h3>
-        <button onClick={() => setShowCreateModal(true)} className="bg-blue-600 text-white px-6 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center gap-2">
-          <Plus size={14} /> Create Price Set
-        </button>
-      </div>
+      <AdminPageHeader
+        title="Pricing"
+        description="Configure price sets, wholesale tiers, and preview resolved prices."
+        actions={
+          <Button onClick={() => setShowCreateModal(true)} size="sm">
+            <Plus size={14} /> Create price set
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">

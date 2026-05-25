@@ -14,12 +14,20 @@ export function middleware(request) {
     "/case-studies",
     "/catalogs",
     "/contact",
+    "/cart",
+    "/quote",
+    "/privacy",
+    "/terms",
+    "/order/success",
   ];
 
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith("/products/") ||
-    pathname.startsWith("/blog/");
+    pathname.startsWith("/categories/") ||
+    pathname.startsWith("/compare") ||
+    pathname.startsWith("/blog/") ||
+    pathname.startsWith("/case-studies/");
 
   if (isPublicRoute) return NextResponse.next();
 
@@ -42,8 +50,8 @@ export function middleware(request) {
   const token = auth?.token || tokenCookie;
   const role = auth?.role;
 
-  // 3. PROTECTED CUSTOMER ROUTES (/cart, /account/*)
-  if (pathname === "/cart" || pathname.startsWith("/account")) {
+  // 3. PROTECTED CUSTOMER ROUTES (/account/*)
+  if (pathname.startsWith("/account")) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url));
     }

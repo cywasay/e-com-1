@@ -2,12 +2,16 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import api from "@/lib/api";
+import { useConfirm } from "@/components/ConfirmProvider";
 import CategoryTree from "./_components/CategoryTree";
 import CategoryForm from "./_components/CategoryForm";
+import AdminPageHeader from "../_components/AdminPageHeader";
 
 export default function CategoriesClient() {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({ name: "", parent_id: "", sort_order: 0, is_active: true });
 
@@ -35,12 +39,25 @@ export default function CategoriesClient() {
 
   const saveMutation = useMutation({
     mutationFn: (data) => editingCategory ? api.put(`/admin/categories/${editingCategory.id}`, data) : api.post("/admin/categories", data),
-    onSuccess: () => { queryClient.invalidateQueries(["admin", "categories"]); handleClear(); }
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "categories"]);
+      toast.success(editingCategory ? "Category updated" : "Category created");
+      handleClear();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to save category");
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/admin/categories/${id}`),
-    onSuccess: () => queryClient.invalidateQueries(["admin", "categories"])
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "categories"]);
+      toast.success("Category deleted");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to delete category");
+    },
   });
 
   const handleEdit = (category) => {
@@ -53,18 +70,28 @@ export default function CategoriesClient() {
     setFormData({ name: "", parent_id: "", sort_order: 0, is_active: true });
   };
 
+  const handleDelete = async (id) => {
+    const confirmed = await confirm({
+      title: "Delete category?",
+      description: "Products in this category may lose their assignment. This cannot be undone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (confirmed) deleteMutation.mutate(id);
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Categories</h1>
-        <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-medium">Manage product taxonomy and hierarchy</p>
-      </div>
+      <AdminPageHeader
+        title="Categories"
+        description="Organize products into a hierarchical taxonomy."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-7">
           <CategoryTree 
             categories={categories} isLoading={isLoading} 
-            onEdit={handleEdit} onDelete={(id) => window.confirm("Delete?") && deleteMutation.mutate(id)} 
+            onEdit={handleEdit} onDelete={handleDelete} 
             editingId={editingCategory?.id} 
           />
         </div>

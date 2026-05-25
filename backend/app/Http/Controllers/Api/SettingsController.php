@@ -9,6 +9,33 @@ use Illuminate\Support\Facades\Validator;
 
 class SettingsController extends Controller
 {
+    private const PUBLIC_KEYS = [
+        'store_name',
+        'store_email',
+        'store_phone',
+        'store_whatsapp',
+        'store_address',
+        'store_logo_url',
+        'facebook_url',
+        'instagram_url',
+        'linkedin_url',
+        'twitter_url',
+    ];
+
+    /**
+     * Get whitelisted settings for the public storefront.
+     */
+    public function publicSettings()
+    {
+        $settings = Setting::whereIn('key', self::PUBLIC_KEYS)
+            ->pluck('value', 'key');
+
+        return response()->json([
+            'success' => true,
+            'data' => $settings,
+        ]);
+    }
+
     /**
      * Get all settings.
      */

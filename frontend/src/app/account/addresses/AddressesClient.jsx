@@ -9,6 +9,8 @@ import api from "@/lib/api";
 import { useState, useEffect } from "react";
 import AddressPreview from "./_components/AddressPreview";
 import AddressForm from "./_components/AddressForm";
+import AccountPageHeader from "../_components/AccountPageHeader";
+import { parseDefaultAddress } from "@/lib/parseAddress";
 
 const addressSchema = z.object({
   full_name: z.string().min(2, "Full name is required"),
@@ -25,46 +27,50 @@ const addressSchema = z.object({
 export default function AddressesClient() {
   const { user, setUser, token } = useAuthStore();
   const [success, setSuccess] = useState(false);
+  const savedAddress = parseDefaultAddress(user?.default_address);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(addressSchema),
     defaultValues: {
-      full_name: user?.default_address?.full_name || user?.name || "",
-      phone: user?.default_address?.phone || user?.phone || "",
-      address_line_1: user?.default_address?.address_line_1 || "",
-      address_line_2: user?.default_address?.address_line_2 || "",
-      city: user?.default_address?.city || "",
-      emirates: user?.default_address?.emirates || "Dubai",
-      country: user?.default_address?.country || "United Arab Emirates",
+      full_name: savedAddress?.full_name || user?.name || "",
+      phone: savedAddress?.phone || user?.phone || "",
+      address_line_1: savedAddress?.address_line_1 || "",
+      address_line_2: savedAddress?.address_line_2 || "",
+      city: savedAddress?.city || "",
+      emirates: savedAddress?.emirates || "Dubai",
+      country: savedAddress?.country || "United Arab Emirates",
     }
   });
 
   useEffect(() => {
-    if (user?.default_address) reset(user.default_address);
+    const address = parseDefaultAddress(user?.default_address);
+    if (address) reset(address);
   }, [user, reset]);
 
   const mutation = useMutation({
     mutationFn: (data) => api.put("/account/address", data),
     onSuccess: (res) => {
-      setUser({ ...user, default_address: res.data.data }, token);
+      setUser({ ...user, default_address: parseDefaultAddress(res.data.data) }, token);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     }
   });
 
   return (
-    <div className="max-w-4xl space-y-20">
-      <div>
-        <h2 className="text-2xl font-bold text-[#1a1a2e]">Shipping Address</h2>
-        <p className="text-[14px] text-[#6b6560] mt-1">Manage your default shipping details for faster checkout.</p>
-      </div>
+    <div className="max-w-4xl space-y-12">
+      <AccountPageHeader
+        title="Shipping address"
+        description="Manage your default shipping details for faster checkout."
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-20">
         <AddressPreview user={user} isPending={mutation.isPending} />
         <AddressForm 
           register={register} errors={errors} 
           onSubmit={handleSubmit((data) => mutation.mutate(data))} 
-          isPending={mutation.isPending} isSuccess={success} 
+          isPending={mutation.isPending} isSuccess={success}
+          setValue={setValue}
+          watch={watch}
         />
       </div>
     </div>

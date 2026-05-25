@@ -7,8 +7,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import api from "@/lib/api";
-import RegisterHeader from "./_components/RegisterHeader";
+import StorefrontLayout from "@/components/StorefrontLayout";
 import RegisterForm from "./_components/RegisterForm";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -49,20 +50,25 @@ export default function RegisterClient() {
   };
 
   return (
-    <div className="min-h-[90vh] flex flex-col items-center justify-center bg-[#f8f7f4] px-4 py-12 font-sans text-[#1a1a2e]">
-      <RegisterHeader />
-      <div className="w-full max-w-xl bg-white rounded-lg shadow-sm border border-[#e8e4dc] overflow-hidden">
-        <div className="p-8">
-          <RegisterForm 
-            register={register} errors={errors} isSubmitting={isSubmitting} 
-            onSubmit={handleSubmit(onSubmit)} serverError={serverError} 
-            selectedRole={selectedRole}
-          />
+    <StorefrontLayout>
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold tracking-tight mb-2">Create Account</h1>
+          <p className="text-muted-foreground text-sm">Join uniforms.ae as a retail or corporate buyer</p>
         </div>
-        <div className="px-8 py-5 bg-[#f8f7f4] border-t border-[#e8e4dc] text-center">
-          <p className="text-sm text-[#6b6560]">Already have an account? <Link href="/login" className="font-semibold text-[#c8a96e]">Sign in</Link></p>
-        </div>
+        <Card className="w-full max-w-xl overflow-hidden">
+          <CardContent className="p-8">
+            <RegisterForm
+              register={register} errors={errors} isSubmitting={isSubmitting}
+              onSubmit={handleSubmit(onSubmit)} serverError={serverError}
+              selectedRole={selectedRole}
+            />
+          </CardContent>
+          <CardFooter className="justify-center border-t bg-muted px-8 py-5">
+            <p className="text-sm text-muted-foreground">Already have an account? <Link href="/login" className="font-semibold text-accent">Sign in</Link></p>
+          </CardFooter>
+        </Card>
       </div>
-    </div>
+    </StorefrontLayout>
   );
 }

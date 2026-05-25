@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Quote;
 use App\Models\User;
 use App\Models\B2bApplication;
 use Illuminate\Http\Request;
@@ -35,13 +36,20 @@ class DashboardController extends Controller
         // 5. B2B Applications
         $pendingApplications = B2bApplication::where('status', 'pending')->count();
 
-        // 6. Recent Orders
+        // 6. Quote pipeline
+        $pendingQuotes = Quote::whereIn('status', ['new', 'in_review'])->count();
+        $recentQuotes = Quote::with('items')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // 7. Recent Orders
         $recentOrders = Order::with('customer:id,name')
             ->latest()
             ->take(5)
             ->get();
 
-        // 7. Low Stock Products
+        // 8. Low Stock Products
         $lowStockProducts = ProductVariant::with('product:id,name')
             ->where('stock_qty', '<', 10)
             ->latest()
@@ -66,7 +74,9 @@ class DashboardController extends Controller
                 'total_customers' => $totalCustomers,
                 'b2b_accounts' => $b2bAccounts,
                 'pending_b2b_applications' => $pendingApplications,
+                'pending_quotes' => $pendingQuotes,
                 'recent_orders' => $recentOrders,
+                'recent_quotes' => $recentQuotes,
                 'low_stock_products' => $lowStockProducts
             ]
         ]);

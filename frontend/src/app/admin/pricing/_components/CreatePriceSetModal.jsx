@@ -1,40 +1,72 @@
 "use client";
-import { X, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function CreatePriceSetModal({ isOpen, onClose, onCreate, isPending }) {
-  if (!isOpen) return null;
+  const [type, setType] = useState("global_sale");
+
+  useEffect(() => {
+    if (isOpen) setType("global_sale");
+  }, [isOpen]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 animate-in zoom-in-95 duration-200">
-        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-6">New Price Set</h2>
-        <form 
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="uppercase tracking-tight">New Price Set</DialogTitle>
+        </DialogHeader>
+        <form
           onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.target);
-            onCreate({ name: fd.get("name"), type: fd.get("type"), is_active: true });
+            onCreate({ name: fd.get("name"), type, is_active: true });
           }}
           className="space-y-6"
         >
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Price Set Name</label>
-            <input name="name" required className="w-full bg-gray-50 border-none px-4 py-3 rounded-xl focus:ring-1 focus:ring-blue-500 outline-none text-sm font-bold" placeholder="E.g. Summer 2026 Sale" />
+            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Price Set Name</Label>
+            <Input name="name" required placeholder="E.g. Summer 2026 Sale" className="font-bold" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Type</label>
-            <select name="type" className="w-full bg-gray-50 border-none px-4 py-3 rounded-xl focus:ring-1 focus:ring-blue-500 outline-none text-sm font-bold">
-              <option value="global_sale">Global Sale (All B2B)</option>
-              <option value="buyer_specific">Buyer Specific Override</option>
-            </select>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Type</Label>
+            <input type="hidden" name="type" value={type} />
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger className="w-full font-bold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="global_sale">Global Sale (All B2B)</SelectItem>
+                <SelectItem value="buyer_specific">Buyer Specific Override</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 px-6 py-3 border border-gray-200 text-gray-400 font-bold uppercase tracking-widest text-[10px] rounded-xl">Cancel</button>
-            <button type="submit" disabled={isPending} className="flex-1 bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-slate-900 transition-all flex items-center justify-center gap-2">
+          <DialogFooter className="gap-4 sm:gap-4">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 uppercase tracking-widest text-[10px]">
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending} className="flex-1 uppercase tracking-widest text-[10px]">
               {isPending ? <Loader2 size={12} className="animate-spin" /> : "Create Set"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -11,6 +11,19 @@ use App\Models\PriceSetItem;
 class PricingService
 {
     /**
+     * B2B wholesale pricing only applies after admin approval.
+     */
+    private function isApprovedB2b(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return ($user->role === 'b2b_buyer' || $user->role === 'b2b')
+            && $user->b2b_status === 'approved';
+    }
+
+    /**
      * Resolve the price for a product and user based on priority:
      * 1. Buyer-specific price set
      * 2. Global sale price set (all_b2b)
@@ -23,12 +36,68 @@ class PricingService
     }
 
     /**
+     * Batch resolve prices for a collection of products.
+     * Dramatically reduces database queries by fetching all relevant PriceSetItems at once.
+     */
+    public function resolvePricesForCollection($products, ?User $user)
+    {
+        if ($products->isEmpty()) return $products;
+
+        $productIds = $products->pluck('id')->toArray();
+        $buyerSpecificItems = collect();
+        $globalSaleItems = collect();
+
+        if ($user) {
+            // 1. Pre-fetch Buyer-specific price set items for all products in this collection
+            if ($this->isApprovedB2b($user)) {
+                $buyerSpecificItems = PriceSetItem::whereIn('product_id', $productIds)
+                ->whereHas('priceSet', function ($query) {
+                    $query->active()->where('type', 'buyer_specific');
+                })
+                ->whereHas('priceSet.assignments', function ($query) use ($user) {
+                    $query->where('user_id', $user->id)->where('scope', 'buyer_specific');
+                })
+                ->get()
+                ->keyBy('product_id');
+            }
+
+            // 2. Pre-fetch Global sale price set items (all_b2b)
+            if ($this->isApprovedB2b($user)) {
+                $globalSaleItems = PriceSetItem::whereIn('product_id', $productIds)
+                    ->whereHas('priceSet', function ($query) {
+                        $query->active()->where('type', 'global_sale');
+                    })
+                    ->whereHas('priceSet.assignments', function ($query) {
+                        $query->where('scope', 'all_b2b');
+                    })
+                    ->get()
+                    ->keyBy('product_id');
+            }
+        }
+
+        // Apply logic to each product using the pre-fetched collections
+        foreach ($products as $product) {
+            if ($user && isset($buyerSpecificItems[$product->id])) {
+                $product->resolved_price = (float) $buyerSpecificItems[$product->id]->override_price;
+            } elseif ($user && isset($globalSaleItems[$product->id])) {
+                $product->resolved_price = (float) $globalSaleItems[$product->id]->override_price;
+            } elseif ($user && $this->isApprovedB2b($user) && $product->base_wholesale_price > 0) {
+                $product->resolved_price = (float) $product->base_wholesale_price;
+            } else {
+                $product->resolved_price = (float) ($product->base_retail_price ?: $product->price);
+            }
+        }
+
+        return $products;
+    }
+
+    /**
      * Resolve the price with metadata about which rule was applied.
      */
     public function resolvePriceDetailed(Product $product, ?User $user): array
     {
         // 1. Buyer-specific price set
-        if ($user) {
+        if ($user && $this->isApprovedB2b($user)) {
             $specificPrice = PriceSetItem::where('product_id', $product->id)
                 ->whereHas('priceSet', function ($query) {
                     $query->active()->where('type', 'buyer_specific');
@@ -49,7 +118,7 @@ class PricingService
         }
 
         // 2. Global sale price set (all_b2b scope)
-        if ($user && ($user->role === 'b2b_buyer' || $user->role === 'b2b')) {
+        if ($user && $this->isApprovedB2b($user)) {
             $globalSalePrice = PriceSetItem::where('product_id', $product->id)
                 ->whereHas('priceSet', function ($query) {
                     $query->active()->where('type', 'global_sale');
@@ -70,7 +139,7 @@ class PricingService
         }
 
         // 3. B2B wholesale price
-        if ($user && ($user->role === 'b2b_buyer' || $user->role === 'b2b') && $product->base_wholesale_price > 0) {
+        if ($user && $this->isApprovedB2b($user) && $product->base_wholesale_price > 0) {
             return [
                 'resolved_price' => (float) $product->base_wholesale_price,
                 'rule_applied' => 'b2b_wholesale',

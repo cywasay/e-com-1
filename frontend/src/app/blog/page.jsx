@@ -7,14 +7,14 @@ export const metadata = {
 };
 
 export default async function BlogPage() {
-  let initialPosts = [];
+  let initialData = null;
 
   try {
     const response = await api.get("/blog");
-    initialPosts = response.data.data || [];
+    initialData = response.data;
   } catch (error) {
     console.error("Error fetching blog posts:", error);
   }
 
-  return <BlogClient initialPosts={initialPosts} />;
+  return <BlogClient initialData={initialData} />;
 }

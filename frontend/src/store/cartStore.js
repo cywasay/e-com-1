@@ -8,6 +8,8 @@ const useCartStore = create(
 
       addItem: (newItem) => {
         const items = get().items;
+        const moq = Math.max(1, Number(newItem.moq) || 1);
+        const quantity = Math.max(Number(newItem.quantity) || 1, moq);
         const existingItemIndex = items.findIndex(
           (item) => 
             item.product_id === newItem.product_id && 
@@ -16,10 +18,13 @@ const useCartStore = create(
 
         if (existingItemIndex > -1) {
           const updatedItems = [...items];
-          updatedItems[existingItemIndex].quantity += (newItem.quantity || 1);
+          updatedItems[existingItemIndex].quantity = Math.max(
+            updatedItems[existingItemIndex].quantity + (Number(newItem.quantity) || 1),
+            moq
+          );
           set({ items: updatedItems });
         } else {
-          set({ items: [...items, { ...newItem, quantity: newItem.quantity || 1 }] });
+          set({ items: [...items, { ...newItem, quantity, moq }] });
         }
       },
 
@@ -34,7 +39,8 @@ const useCartStore = create(
       updateQuantity: (productId, variantId, delta) => {
         const updatedItems = get().items.map((item) => {
           if (item.product_id === productId && item.variant_id === variantId) {
-            const newQty = Math.max(1, item.quantity + delta);
+            const moq = Math.max(1, Number(item.moq) || 1);
+            const newQty = Math.max(moq, item.quantity + delta);
             return { ...item, quantity: newQty };
           }
           return item;

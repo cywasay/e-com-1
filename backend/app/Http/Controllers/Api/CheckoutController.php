@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\PricingService;
+use App\Services\PublicProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -18,11 +19,10 @@ use Stripe\Webhook;
 
 class CheckoutController extends Controller
 {
-    protected $pricingService;
-
-    public function __construct(PricingService $pricingService)
-    {
-        $this->pricingService = $pricingService;
+    public function __construct(
+        protected PricingService $pricingService,
+        protected PublicProductService $publicProductService,
+    ) {
         Stripe::setApiKey(config('services.stripe.secret'));
     }
 
@@ -32,20 +32,37 @@ class CheckoutController extends Controller
         $items = $request->input('items', []);
         $shippingAddress = $request->input('shipping_address');
 
+        if (!$this->publicProductService->canUseCheckout($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Checkout is not available for your account type. Please use the quote flow.',
+            ], 403);
+        }
+
         if (empty($items)) {
             return response()->json(['success' => false, 'message' => 'Cart is empty'], 400);
         }
 
         $lineItems = [];
         foreach ($items as $item) {
-            $product = Product::findOrFail($item['product_id']);
-            
-            // Validate price server-side
+            $product = Product::find($item['product_id'] ?? null);
+
+            if (!$product) {
+                return response()->json(['success' => false, 'message' => 'Product not found.'], 404);
+            }
+
+            $quantity = (int) ($item['quantity'] ?? 1);
+            $error = $this->publicProductService->validateCheckoutItem($product, $quantity, $user);
+
+            if ($error) {
+                return response()->json(['success' => false, 'message' => $error], 422);
+            }
+
             $validatedPrice = $this->pricingService->resolvePrice($product, $user);
-            
+
             $lineItems[] = [
                 'price_data' => [
-                    'currency' => 'aed', // Default to AED as per UAE context
+                    'currency' => config('services.stripe.currency', 'aed'),
                     'product_data' => [
                         'name' => $product->name,
                         'metadata' => [
@@ -53,19 +70,21 @@ class CheckoutController extends Controller
                             'variant_id' => $item['variant_id'] ?? null,
                         ],
                     ],
-                    'unit_amount' => (int) ($validatedPrice * 100), // Stripe uses cents/fils
+                    'unit_amount' => (int) round($validatedPrice * 100),
                 ],
-                'quantity' => $item['quantity'],
+                'quantity' => $quantity,
             ];
         }
+
+        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:3000'), '/');
 
         try {
             $session = Session::create([
                 'payment_method_types' => ['card'],
                 'line_items' => $lineItems,
                 'mode' => 'payment',
-                'success_url' => 'http://localhost:3000/order/success?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url' => 'http://localhost:3000/cart',
+                'success_url' => $frontendUrl . '/order/success?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => $frontendUrl . '/cart',
                 'customer_email' => $user->email,
                 'metadata' => [
                     'user_id' => $user->id,
@@ -78,12 +97,52 @@ class CheckoutController extends Controller
                 'success' => true,
                 'data' => [
                     'checkout_url' => $session->url,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('Stripe Session Error: ' . $e->getMessage());
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function verifySession(Request $request, string $sessionId)
+    {
+        $user = $request->user();
+
+        try {
+            $session = Session::retrieve($sessionId);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Invalid checkout session.'], 404);
+        }
+
+        if ((string) ($session->metadata->user_id ?? '') !== (string) $user->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized session.'], 403);
+        }
+
+        if ($session->payment_status !== 'paid') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment not completed yet.',
+                'data' => ['payment_status' => $session->payment_status],
+            ], 422);
+        }
+
+        $order = Order::where('stripe_checkout_session', $sessionId)
+            ->orWhere('stripe_payment_intent', $session->payment_intent)
+            ->with('items')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'session_id' => $sessionId,
+                'payment_status' => $session->payment_status,
+                'amount_total' => $session->amount_total / 100,
+                'currency' => strtoupper($session->currency ?? 'AED'),
+                'order' => $order,
+            ],
+        ]);
     }
 
     public function handleWebhook(Request $request)
@@ -110,28 +169,35 @@ class CheckoutController extends Controller
 
     protected function processOrder($session)
     {
+        if (Order::where('stripe_checkout_session', $session->id)->exists()) {
+            return;
+        }
+
+        if ($session->payment_intent && Order::where('stripe_payment_intent', $session->payment_intent)->exists()) {
+            return;
+        }
+
         DB::transaction(function () use ($session) {
             $userId = $session->metadata->user_id;
             $buyerType = $session->metadata->buyer_type;
             $shippingAddress = json_decode($session->metadata->shipping_address, true);
 
-            // Create Order
             $order = Order::create([
                 'customer_id' => $userId,
                 'buyer_type' => $buyerType,
+                'stripe_checkout_session' => $session->id,
                 'stripe_payment_intent' => $session->payment_intent,
                 'total_amount' => $session->amount_total / 100,
                 'shipping_address' => $shippingAddress,
                 'status' => 'pending',
             ]);
 
-            // Retrieve line items from Stripe to get product details
             $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
             $lineItems = $stripe->checkout->sessions->allLineItems($session->id, ['expand' => ['data.price.product']]);
 
             foreach ($lineItems->data as $item) {
                 $productData = $item->price->product->metadata;
-                
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $productData->product_id,
@@ -142,7 +208,6 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            // Clear cart
             CartItem::where('user_id', $userId)->delete();
         });
     }

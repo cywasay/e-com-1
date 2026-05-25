@@ -52,6 +52,7 @@ class Product extends Model
         'margin_percentage' => 'decimal:2',
         'tax_percentage' => 'decimal:2',
         'handling_fee' => 'decimal:2',
+        'moq' => 'integer',
         'stock_qty' => 'integer',
         'track_inventory' => 'boolean',
         'continue_selling_when_out_of_stock' => 'boolean',

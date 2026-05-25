@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import api from "@/lib/api";
 import QuotesFilters from "./_components/QuotesFilters";
 import QuotesTable from "./_components/QuotesTable";
+import AdminPageHeader from "../_components/AdminPageHeader";
 
 export default function QuotesClient() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedId, setExpandedId] = useState(null);
-  const [updateResult, setUpdateResult] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: quotesData, isLoading } = useQuery({
@@ -19,18 +20,22 @@ export default function QuotesClient() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status, admin_notes }) => api.put(`/admin/quotes/${id}/status`, { status, admin_notes }),
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-quotes"] });
-      setUpdateResult(variables.id);
-      setTimeout(() => setUpdateResult(null), 3000);
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      toast.success("Quote updated");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update quote");
     },
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">Quote Requests</h1>
-      </div>
+      <AdminPageHeader
+        title="Quote requests"
+        description="Manage inbound B2B and contact quote inquiries."
+      />
 
       <QuotesFilters statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
 
@@ -41,7 +46,6 @@ export default function QuotesClient() {
         setExpandedId={setExpandedId}
         onUpdate={(id, status, notes) => updateMutation.mutate({ id, status, admin_notes: notes })}
         isUpdating={updateMutation.isPending}
-        updateResult={updateResult}
       />
     </div>
   );

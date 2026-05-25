@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\Quote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -91,11 +93,70 @@ class AccountController extends Controller
 
         $user->default_address = $addressData;
         $user->save();
+        $user->refresh();
 
         return response()->json([
             'success' => true,
             'data' => $user->default_address,
             'message' => 'Address updated successfully.'
+        ]);
+    }
+
+    /**
+     * Account dashboard summary for the logged-in customer.
+     */
+    public function summary(Request $request)
+    {
+        $user = $request->user();
+
+        $ordersQuery = Order::where('customer_id', $user->id);
+        $quotesQuery = Quote::with(['items.product:id,name'])
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('email', $user->email);
+            });
+
+        $recentOrders = (clone $ordersQuery)
+            ->with(['items.product:id,name'])
+            ->latest()
+            ->limit(3)
+            ->get();
+
+        $recentQuotes = (clone $quotesQuery)
+            ->latest()
+            ->limit(3)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'orders_count' => (clone $ordersQuery)->count(),
+                'quotes_count' => (clone $quotesQuery)->count(),
+                'has_address' => !empty($user->default_address),
+                'recent_orders' => $recentOrders,
+                'recent_quotes' => $recentQuotes,
+            ],
+        ]);
+    }
+
+    /**
+     * Quote history for the logged-in customer.
+     */
+    public function myQuotes(Request $request)
+    {
+        $user = $request->user();
+
+        $quotes = Quote::with(['items.product:id,name'])
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('email', $user->email);
+            })
+            ->latest()
+            ->paginate(10);
+
+        return response()->json([
+            'success' => true,
+            'data' => $quotes,
         ]);
     }
 }

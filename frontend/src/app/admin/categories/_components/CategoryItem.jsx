@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function CategoryItem({ category, depth = 0, onEdit, onDelete, editingId }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -10,28 +12,41 @@ export default function CategoryItem({ category, depth = 0, onEdit, onDelete, ed
     <div className="space-y-1">
       <div 
         className={`flex items-center gap-3 p-3 rounded-md border transition-all ${
-          editingId === category.id ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-slate-300'
+          editingId === category.id ? "bg-accent/10 border-accent/30" : "bg-white border-border hover:border-border"
         }`}
         style={{ marginLeft: `${depth * 24}px` }}
       >
-        <button onClick={() => setIsOpen(!isOpen)} className={`p-0.5 rounded hover:bg-slate-100 transition-colors ${!hasChildren && 'invisible'}`}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => setIsOpen(!isOpen)}
+          className={!hasChildren ? "invisible" : ""}
+        >
           {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
+        </Button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900 truncate">{category.name}</span>
-            {!category.is_active && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500 uppercase tracking-wider">Hidden</span>}
+            <span className="text-sm font-bold text-foreground truncate">{category.name}</span>
+            {!category.is_active && (
+              <Badge variant="outline" className="text-[9px] uppercase tracking-wider">Hidden</Badge>
+            )}
           </div>
-          <div className="text-[10px] text-slate-400 font-mono truncate">{category.slug}</div>
+          <div className="text-[10px] text-muted-foreground font-mono truncate">{category.slug}</div>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => onEdit(category)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Pencil size={14} /></button>
-          {!hasChildren && <button onClick={() => onDelete(category.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"><Trash2 size={14} /></button>}
+          <Button variant="ghost" size="icon-sm" onClick={() => onEdit(category)}>
+            <Pencil size={14} />
+          </Button>
+          {!hasChildren && (
+            <Button variant="ghost" size="icon-sm" onClick={() => onDelete(category.id)} className="hover:text-red-600">
+              <Trash2 size={14} />
+            </Button>
+          )}
         </div>
       </div>
       {isOpen && hasChildren && (
         <div className="space-y-1">
-          {category.children_recursive.map(child => (
+          {category.children_recursive.map((child) => (
             <CategoryItem key={child.id} category={child} depth={depth + 1} onEdit={onEdit} onDelete={onDelete} editingId={editingId} />
           ))}
         </div>

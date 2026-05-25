@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
+import { useConfirm } from "@/components/ConfirmProvider";
 import ProductsHeader from "./_components/ProductsHeader";
 import ProductsFilters from "./_components/ProductsFilters";
 import ProductsTable from "./_components/ProductsTable";
@@ -12,6 +13,7 @@ import ImportModal from "./_components/ImportModal";
 
 export default function ProductsClient() {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [view, setView] = useState("list"); // "list" or "form"
   const [editingId, setEditingId] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -80,7 +82,6 @@ export default function ProductsClient() {
         payload._method = 'PUT'; // Spoof PUT request for Laravel
       }
       
-      console.log("Submitting Clean Product Data:", payload);
       return editingId ? api.post(`/admin/products/${editingId}`, payload) : api.post("/admin/products", payload);
     },
     onSuccess: async (response) => {
@@ -143,7 +144,11 @@ export default function ProductsClient() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/admin/products/${id}`),
-    onSuccess: () => queryClient.invalidateQueries(["admin", "products"])
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "products"]);
+      toast.success("Product deleted");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to delete product"),
   });
 
   const uploadImagesMutation = useMutation({
@@ -155,17 +160,27 @@ export default function ProductsClient() {
     onSuccess: (res) => {
       setFormData(prev => ({ ...prev, images: [...prev.images, ...res.data.data] }));
       queryClient.invalidateQueries(["admin", "products"]);
-    }
+      toast.success("Images uploaded");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to upload images"),
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: (imageId) => api.put(`/admin/products/${editingId}/images/${imageId}/primary`),
-    onSuccess: () => queryClient.invalidateQueries(["admin", "products"])
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "products"]);
+      toast.success("Primary image updated");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to set primary image"),
   });
 
   const deleteImageMutation = useMutation({
     mutationFn: (imageId) => api.delete(`/admin/products/${editingId}/images/${imageId}`),
-    onSuccess: () => queryClient.invalidateQueries(["admin", "products"])
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "products"]);
+      toast.success("Image removed");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Failed to remove image"),
   });
 
   const importMutation = useMutation({
@@ -174,7 +189,11 @@ export default function ProductsClient() {
       fd.append("file", file);
       return api.post("/admin/products/import", fd, { headers: { "Content-Type": "multipart/form-data" } }).then(res => res.data);
     },
-    onSuccess: () => queryClient.invalidateQueries(["admin", "products"])
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(["admin", "products"]);
+      toast.success(data?.message || "Import completed");
+    },
+    onError: (error) => toast.error(error.response?.data?.message || "Import failed"),
   });
 
   const generateVariants = () => {
@@ -214,6 +233,16 @@ export default function ProductsClient() {
     setFormData(prev => ({ ...prev, variants: newVariants }));
   };
 
+  const handleDeleteProduct = async (id) => {
+    const confirmed = await confirm({
+      title: "Delete product?",
+      description: "This will permanently remove the product and its variants from the catalog.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (confirmed) deleteMutation.mutate(id);
+  };
+
   const handleEdit = (product) => {
     setEditingId(product.id);
     setFormData({
@@ -245,7 +274,7 @@ export default function ProductsClient() {
     <div className="space-y-6">
       <ProductsHeader onAdd={() => { setEditingId(null); setFormData({ name: "", category_id: "", price: "", description: "", status: "draft", visibility: "both", is_featured: false, is_bestseller: false, is_eco_friendly: false, is_new_arrival: false, base_cost: "", compare_at_price: "", charge_tax: true, margin_percentage: "0", tax_percentage: "5", handling_fee: "0", sku: "", barcode: "", stock_qty: 0, track_inventory: true, continue_selling_when_out_of_stock: false, site_ids: [], images: [], optionTypes: [], variants: [] }); setView("form"); }} onImport={() => setShowImportModal(true)} />
       <ProductsFilters search={search} setSearch={setSearch} statusFilter={statusFilter} setStatusFilter={setStatusFilter} categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} categoryOptions={categoryOptions} />
-      <ProductsTable products={productsData?.data?.data || []} isLoading={isLoadingProducts} onEdit={handleEdit} onDelete={(id) => window.confirm("Delete?") && deleteMutation.mutate(id)} page={page} setPage={setPage} lastPage={productsData?.data?.last_page || 1} />
+      <ProductsTable products={productsData?.data?.data || []} isLoading={isLoadingProducts} onEdit={handleEdit} onDelete={handleDeleteProduct} page={page} setPage={setPage} lastPage={productsData?.data?.last_page || 1} />
       <ImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} onImport={(f) => importMutation.mutate(f)} isImporting={importMutation.isPending} result={importMutation.data} onDownloadTemplate={() => {}} />
     </div>
   );

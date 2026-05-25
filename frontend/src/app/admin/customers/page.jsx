@@ -2,8 +2,41 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { Search, User, Mail, Building2, Calendar, Loader2 } from "lucide-react";
+import { Search, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import AdminTableSkeleton from "../_components/skeletons/AdminTableSkeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import AdminPageHeader from "../_components/AdminPageHeader";
+
+function formatRole(role) {
+  switch (role) {
+    case "b2b_buyer":
+      return "B2B buyer";
+    case "b2c_customer":
+      return "B2C customer";
+    case "admin_staff":
+      return "Admin staff";
+    case "super_admin":
+      return "Super admin";
+    default:
+      return role?.replace(/_/g, " ") || "Customer";
+  }
+}
+
+function roleVariant(role) {
+  if (role === "b2b_buyer") return "accent";
+  if (role === "b2c_customer") return "outline";
+  return "secondary";
+}
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
@@ -16,91 +49,83 @@ export default function CustomersPage() {
   const customers = customersData?.data || [];
 
   return (
-    <ProtectedRoute allowedRoles={['super_admin']}>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Customers</h1>
-            <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-medium">Manage your retail and B2B customers</p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Customers"
+        description="View retail and B2B customer accounts."
+      />
 
-        {/* Filters */}
-        <div className="bg-white p-4 border border-slate-200 rounded-md shadow-sm">
+      <Card className="py-0 shadow-sm">
+        <div className="p-4">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <Input
               type="text"
               placeholder="Search by name or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              className="pl-10"
             />
           </div>
         </div>
+      </Card>
 
-        {/* Table */}
-        <div className="bg-white border border-slate-200 rounded-md shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Customer</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Company</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Role</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Joined</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {isLoading ? (
-                  [...Array(5)].map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td className="px-6 py-4">
-                        <div className="h-4 w-32 bg-slate-100 rounded mb-1" />
-                        <div className="h-3 w-40 bg-slate-100 rounded" />
-                      </td>
-                      <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-100 rounded" /></td>
-                      <td className="px-6 py-4"><div className="h-5 w-20 bg-slate-100 rounded-full mx-auto" /></td>
-                      <td className="px-6 py-4 text-right"><div className="h-4 w-16 bg-slate-100 rounded ml-auto" /></td>
-                    </tr>
-                  ))
-                ) : customers.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-20 text-center">
-                      <User className="inline-block text-slate-200 mb-2" size={48} />
-                      <p className="text-sm font-medium text-slate-400">No customers found.</p>
-                    </td>
-                  </tr>
-                ) : (
-                  customers.map((cust) => (
-                    <tr key={cust.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-slate-900">{cust.name}</div>
-                        <div className="text-xs text-slate-500">{cust.email}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs text-slate-600">{cust.company_name || "—"}</div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider inline-block ${
-                          cust.role === 'super_admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                          cust.role === 'b2b' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                          'bg-slate-100 text-slate-600 border border-slate-200'
-                        }`}>
-                          {cust.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right text-xs text-slate-400 font-medium">
-                        {new Date(cust.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </ProtectedRoute>
+      <Card className="overflow-hidden py-0 shadow-sm">
+        {isLoading ? (
+          <AdminTableSkeleton rows={6} columns={5} className="border-0 shadow-none" />
+        ) : (
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted">
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest">Customer</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest">Company</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-center">Role</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-center">B2B status</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-right">Joined</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {customers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="px-6 py-20 text-center">
+                  <User className="inline-block text-muted-foreground/30 mb-2" size={48} />
+                  <p className="text-sm font-medium text-muted-foreground">No customers found.</p>
+                </TableCell>
+              </TableRow>
+            ) : (
+              customers.map((cust) => (
+                <TableRow key={cust.id}>
+                  <TableCell>
+                    <div className="font-bold text-foreground">{cust.name}</div>
+                    <div className="text-xs text-muted-foreground">{cust.email}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-xs text-muted-foreground">{cust.company_name || "—"}</div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={roleVariant(cust.role)} className="text-[10px] uppercase tracking-wider">
+                      {formatRole(cust.role)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {cust.role === "b2b_buyer" ? (
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-wider capitalize">
+                        {cust.b2b_status || "pending"}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right text-xs text-muted-foreground font-medium">
+                    {new Date(cust.created_at).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        )}
+      </Card>
+    </div>
   );
 }

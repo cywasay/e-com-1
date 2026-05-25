@@ -2,6 +2,8 @@
 import OrderHistoryItem from "./OrderHistoryItem";
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function OrderHistoryList({ orders, isLoading }) {
   if (isLoading) return <LoadingSkeleton />;
@@ -31,10 +33,17 @@ function LoadingSkeleton() {
 
 function EmptyState() {
   return (
-    <div className="py-24 text-center space-y-6">
-      <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto text-[#c8a96e]"><ShoppingBag size={40} /></div>
-      <div><p className="text-lg font-bold text-[#1a1a2e]">No orders found</p><p className="text-[14px] text-[#6b6560] mt-1">When you make a purchase, it will appear here.</p></div>
-      <Link href="/products" className="inline-block bg-[#1a1a2e] text-white px-10 py-3 rounded-full font-bold text-[13px] hover:bg-[#c8a96e] transition-all">Go to catalog</Link>
+    <div className="space-y-6 py-24 text-center">
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white text-accent shadow-sm">
+        <ShoppingBag size={40} />
+      </div>
+      <div>
+        <p className="text-lg font-bold text-foreground">No orders found</p>
+        <p className="mt-1 text-sm text-muted-foreground">When you make a purchase, it will appear here.</p>
+      </div>
+      <Link href="/products" className={cn(buttonVariants({ variant: "default" }))}>
+        Go to catalog
+      </Link>
     </div>
   );
 }

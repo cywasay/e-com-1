@@ -5,12 +5,12 @@ import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import SettingsHeader from "./_components/SettingsHeader";
 import GeneralSettingsForm from "./_components/GeneralSettingsForm";
 import SocialSettingsForm from "./_components/SocialSettingsForm";
 import AssetsSettingsForm from "./_components/AssetsSettingsForm";
+import AdminFormSkeleton from "../_components/skeletons/AdminFormSkeleton";
 
 export default function SettingsClient() {
   const queryClient = useQueryClient();
@@ -35,23 +35,28 @@ export default function SettingsClient() {
     onError: () => toast.error("Failed to save settings"),
   });
 
-  if (isLoading) {
-    return <div className="flex h-96 items-center justify-center"><Loader2 className="animate-spin text-[#008060]" size={32} /></div>;
-  }
-
   return (
     <ProtectedRoute allowedRoles={["super_admin"]}>
-      <div className="space-y-8 max-w-4xl pb-20">
-        <SettingsHeader 
-          onSave={handleSubmit((data) => mutation.mutate(data))} 
-          isPending={mutation.isPending} 
-          isDirty={isDirty} 
-        />
-        <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-8">
-          <GeneralSettingsForm register={register} />
-          <SocialSettingsForm register={register} />
-          <AssetsSettingsForm register={register} />
-        </form>
+      <div className="max-w-4xl space-y-8 pb-20">
+        {isLoading ? (
+          <>
+            <SettingsHeader onSave={() => {}} isPending={false} isDirty={false} disabled />
+            <AdminFormSkeleton sections={3} fields={3} />
+          </>
+        ) : (
+          <>
+            <SettingsHeader
+              onSave={handleSubmit((data) => mutation.mutate(data))}
+              isPending={mutation.isPending}
+              isDirty={isDirty}
+            />
+            <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-8">
+              <GeneralSettingsForm register={register} />
+              <SocialSettingsForm register={register} />
+              <AssetsSettingsForm register={register} />
+            </form>
+          </>
+        )}
       </div>
     </ProtectedRoute>
   );

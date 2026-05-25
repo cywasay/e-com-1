@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { normalizeUserAddress } from "@/lib/parseAddress";
 
 const useAuthStore = create(
   persist(
@@ -9,7 +10,8 @@ const useAuthStore = create(
       role: null,
 
       setUser: (user, token) => {
-        set({ user, token, role: user?.role || null });
+        const normalizedUser = normalizeUserAddress(user);
+        set({ user: normalizedUser, token, role: normalizedUser?.role || null });
       },
 
       logout: () => {
@@ -24,6 +26,11 @@ const useAuthStore = create(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.user) {
+          state.user = normalizeUserAddress(state.user);
+        }
+      },
     }
   )
 );
